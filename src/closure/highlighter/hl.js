@@ -12,6 +12,7 @@ goog.require('pdf_highlighter.util');
 
 var ieVersion = pdf_highlighter.util.detectIE();
 
+
 var initPdfHighlighter = function (config, hlBase) {
 
     config = config || {};
@@ -23,9 +24,10 @@ var initPdfHighlighter = function (config, hlBase) {
     var url = window.location.href;
     var dirUrl = url.substring(0, url.lastIndexOf("/") + 1);
 
-    var resolveDocumentBase = config['resolveDocumentBase'] || false;
-    var resolveXmlBase = config['resolveXmlBase'] || false;
-    var resolveViewUrl = config['resolveViewUrl'] || false;
+    var ignoreMissingHighlightingParams = config['ignoreMissingHighlightingParams'] || false;
+    var resolveDocumentBase = config['sendAbsoluteUrlsToHighlighter'] || config['resolveDocumentBase'] || false;
+    var resolveXmlBase = config['sendAbsoluteUrlsToHighlighter'] || config['resolveXmlBase'] || false;
+    var resolveViewUrl = config['sendAbsoluteUrlsToHighlighter'] || config['resolveViewUrl'] || false;
 
     var viewerUrl = config['viewerUrl'];
     var encodeHashForViewer = false;
@@ -45,11 +47,24 @@ var initPdfHighlighter = function (config, hlBase) {
     }
 
 
-	console.log('links count: ' + links.length);
+    var queryProvider;
+    if (typeof config['querySelector'] === 'function') {
+        queryProvider = config['querySelector'];
+    }
+    else if (typeof config['querySelector'] === 'string' && config['querySelector'].length > 0) {
+        queryProvider = function() {
+        	return getQueryForSelector(config['querySelector'], config['maxQueryLen']);
+        };
+    }
+    var queryFromProvider = queryProvider ? queryProvider() : undefined;    
+
+
+    if (config.debug) {
+		console.log('Attaching highlighter to links: ' + links.length);
+	}
 	goog.array.forEach(links, function(item, index, arr) {
 		attachHighlighter(item);
 	});
-
 
 
 	function attachHighlighter(el) {
@@ -71,8 +86,10 @@ var initPdfHighlighter = function (config, hlBase) {
 
         var data = {};
         var hlForXml = true;
-
-        var query = config.query || pdf_highlighter.util.findData(el.closest('[data-query]'), 'query');
+        var hlDisabled = false;
+       
+        var query = config.query || queryFromProvider || pdf_highlighter.util.findData(el.closest('[data-query]'), 'query');
+        // console.log('query: ' + query);
         if (query) {
             if (typeof config['filterQuery'] === 'function') {
                 //console.log('call filterQuery');
@@ -94,9 +111,13 @@ var initPdfHighlighter = function (config, hlBase) {
             if (ind === -1) {
                 data['uri'] = pdf_highlighter.util.resolvePath(href, dirUrl, resolveDocumentBase);
                 var xml = goog.dom.dataset.get(el, 'xml');
-                if(!xml)
-                    return;
-                if(xml.match(new RegExp('/<xml/i')))
+                if(!xml) {
+                	if (ignoreMissingHighlightingParams)
+                		hlDisabled = true;
+                	else
+	                    return; // exit as no input for highlighting
+                }
+                else if(xml.match(new RegExp('/<xml/i')))
                     data['xml'] = xml;
                 else
                     data['xml'] = pdf_highlighter.util.resolvePath(xml, dirUrl, resolveXmlBase);
@@ -124,19 +145,16 @@ var initPdfHighlighter = function (config, hlBase) {
         }
         else {
             highlightUrlBuilder = function(data) {
+            	if (hlDisabled) return undefined;
                 var hlActionUrl = config['highlightActionUrl'] ||
                     highlighterUrl + (hlForXml ? 'highlight-for-xml' : 'highlight-for-query');
                 if (data) {
 	                var qd = goog.Uri.QueryData.createFromMap(data);
-	                console.log('QUERY DATA');
-	                console.dir(qd);
 	                var uri = goog.Uri.parse(hlActionUrl);
 	                uri.setQueryData(qd);
 	                hlActionUrl = uri.toString();
             	}
             	return hlActionUrl;
-                //return uri.toString();
-                // return hlActionUrl + '?' + $.param(data);
             };
         }
 
@@ -180,14 +198,14 @@ var initPdfHighlighter = function (config, hlBase) {
                 request.headers.set('content-type' ,'application/json');
                 goog.events.listen(request, 'complete', function(){
 		            // print confirm to the console
-		            console.log('Status code: ', request.getStatus(), ' - ', request.getStatusText());
+		            //console.log('Status code: ', request.getStatus(), ' - ', request.getStatusText());
 			        if (request.isSuccess()) {
 			            var res = request.getResponseJson();
 			            // inject response into the dom
 			            //goog.dom.$('response').innerHTML = request.getResponseText();
 			                         
-
-// fixme extract json response!
+// fixme extract json response! ???? what's with this?
+// 
                         if (typeof config['onHighlightingResult'] === 'function') {
                             //console.log('call onHighlightingResult');
                             if (config['onHighlightingResult'](res, self) === false) {
@@ -212,39 +230,9 @@ var initPdfHighlighter = function (config, hlBase) {
 			                     
 			    });
 			    
-
 			    // start the request by setting POST method and passing
 			    // the data object converted to a queryString
 			    request.send(highlightUrlBuilder(), 'POST', dataEncoded);
-
-                // var jqxhr = $.ajax({
-                //         type: "POST",
-                //         url: highlightUrlBuilder(),
-                //         data: data,
-                //         dataType: 'json'
-                //     })
-                //     .done(function (res) {
-
-                //         if (typeof config.onHighlightingResult === 'function') {
-                //             //console.log('call onHighlightingResult');
-                //             if (config.onHighlightingResult(res, self) === false) {
-                //                 return; // if callback returned false, ignoring click
-                //             }
-                //         }
-
-                //         if (res.success === true) {
-                //             showDocument(res.documentUrl, res);
-                //         }
-                //         else
-                //             onError();
-                //     })
-                //     .fail(function () {
-                //         onError();
-                //     })
-                //     .always(function () {
-                //         // nothing for now
-                //     });
-
             });
         }
 
@@ -296,6 +284,41 @@ var initPdfHighlighter = function (config, hlBase) {
         }
     }
 };
+
+function getQueryForSelector(querySelector, maxQueryLen) {
+	
+	// todo add support for getting query from URL parameter	
+	
+	var query;
+	var element = document.querySelector(querySelector);
+	if (element) {
+		if (isInputBox(element)) {
+			query = element.value;
+		}
+		else {
+			// assuming we're dealing with HTML element so get its text
+			query = element.textContent;
+		}
+		query = query.trim();		
+		if (maxQueryLen && query.length > maxQueryLen) {
+			query = query.substring(0, maxQueryLen);
+		}
+		if (query.length === 0)
+			query = undefined;
+	}
+	return query;
+}
+
+function isInputBox(element) {
+    var tagName = element.tagName.toLowerCase();
+    if (tagName === 'textarea') return true;
+    if (tagName !== 'input') return false;
+    var type = element.getAttribute('type').toLowerCase(),
+        // if any of these input types is not supported by a browser, it will behave as input type text.
+        inputTypes = ['text', 'number', 'email', 'search']
+    return inputTypes.indexOf(type) >= 0;
+}
+
 
 /** @export */
 pdf_highlighter.init = function(config, hlBase) {
