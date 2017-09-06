@@ -17,13 +17,14 @@ var initPdfHighlighter = function (config, hlBase) {
 
     config = config || {};
 
-    var highlighterUrl = hlBase || config.highlighterUrl || window.HighlighterBase || "/";
+    var highlighterUrl = hlBase || config['highlighterUrl'] || window['HighlighterBase'] || "/";
     if (highlighterUrl.indexOf('/', highlighterUrl.length - 1) === -1)
         highlighterUrl += '/';
 
     var url = window.location.href;
     var dirUrl = url.substring(0, url.lastIndexOf("/") + 1);
 
+    var checkStatus = config['checkStatus'] !== false;
     var ignoreMissingHighlightingParams = config['ignoreMissingHighlightingParams'] || false;
     var resolveDocumentBase = config['sendAbsoluteUrlsToHighlighter'] || config['resolveDocumentBase'] || false;
     var resolveXmlBase = config['sendAbsoluteUrlsToHighlighter'] || config['resolveXmlBase'] || false;
@@ -46,6 +47,10 @@ var initPdfHighlighter = function (config, hlBase) {
     	return false;
     }
 
+    if (config.debug) {
+		console.log('Attaching highlighter to links: ' + links.length);
+	}
+
 
     var queryProvider;
     if (typeof config['querySelector'] === 'function') {
@@ -59,15 +64,40 @@ var initPdfHighlighter = function (config, hlBase) {
     var queryFromProvider = queryProvider ? queryProvider() : undefined;    
 
 
-    if (config.debug) {
-		console.log('Attaching highlighter to links: ' + links.length);
+	if (links.length > 0) {
+		// if there are links we can attach to, check server status first
+		if (checkStatus) {
+			var statusReqData = config['statusCheckParams'];
+			checkServerStatus(highlighterUrl, statusReqData,
+				function onSuccess(res) {
+					if (res['success'] && !res['disabled']) {
+						var endpoint = res['endpoint'] || highlighterUrl;
+						attachHighlighterForAll(links, endpoint);
+					}
+					else {
+						attachHighlighterForAll(links, undefined);
+						console.log('PDF highlighting disabled by server.');
+					}
+				}, 
+				function onError() {
+					// in case of error, continue with highlighting disabled (as click may be handled by an external handler to e.g. open viewer)
+					attachHighlighterForAll(links, undefined);
+					console.log('PDF highlighting disabled because status check failed.');
+				});
+		}
+		else {
+			attachHighlighterForAll(links, highlighterUrl);
+		}
 	}
-	goog.array.forEach(links, function(item, index, arr) {
-		attachHighlighter(item);
-	});
 
 
-	function attachHighlighter(el) {
+	function attachHighlighterForAll(links, highlighterUrl) {
+		goog.array.forEach(links, function(item, index, arr) {
+			attachHighlighter(item, highlighterUrl);
+		});
+	}
+
+	function attachHighlighter(el, highlighterUrl) {
 
         if (goog.dom.dataset.get(el, 'hlInited') === 'true') {
             return;
@@ -86,8 +116,8 @@ var initPdfHighlighter = function (config, hlBase) {
 
         var data = {};
         var hlForXml = true;
-        var hlDisabled = false;
-       
+        var hlDisabled = highlighterUrl === undefined;
+
         var query = config.query || queryFromProvider || pdf_highlighter.util.findData(el.closest('[data-query]'), 'query');
         // console.log('query: ' + query);
         if (query) {
@@ -167,6 +197,8 @@ var initPdfHighlighter = function (config, hlBase) {
 
         // if updateHref is enabled, update href and exit
         if (config['updateHref'] === true) {
+        	if (hlDisabled)
+        		return;
             collectParameters(data, el);
             var url = highlightUrlBuilder(data);
             if (url)
@@ -186,6 +218,7 @@ var initPdfHighlighter = function (config, hlBase) {
                 if (typeof config['onHighlightingLinkClick'] === 'function') {
                     //console.log('call onHighlightingLinkClick');
                     var ctx = {};
+                    ctx['highlighterUrl'] = highlighterUrl;
                     ctx['endpoint'] = highlightUrlBuilder();
                     ctx['params'] = data;
                     ctx['paramsEncoded'] = dataEncoded;
@@ -201,18 +234,12 @@ var initPdfHighlighter = function (config, hlBase) {
 		            //console.log('Status code: ', request.getStatus(), ' - ', request.getStatusText());
 			        if (request.isSuccess()) {
 			            var res = request.getResponseJson();
-			            // inject response into the dom
-			            //goog.dom.$('response').innerHTML = request.getResponseText();
-			                         
-// fixme extract json response! ???? what's with this?
-// 
                         if (typeof config['onHighlightingResult'] === 'function') {
                             //console.log('call onHighlightingResult');
                             if (config['onHighlightingResult'](res, self) === false) {
                                 return; // if callback returned false, ignoring click
                             }
                         }
-
                         if (res['success'] === true) {
                             showDocument(res['documentUrl'], res);
                         }
@@ -285,6 +312,34 @@ var initPdfHighlighter = function (config, hlBase) {
     }
 };
 
+function checkServerStatus(highlighterUrl, statusReqData, onSuccess, onError) {
+    var dataEncoded = statusReqData ? goog.Uri.QueryData.createFromMap(statusReqData).toString() : undefined;
+	var request = new goog.net.XhrIo();
+	request.headers.set('accept' ,'application/json');
+	goog.events.listen(request, 'complete', function(){
+	    if (request.isSuccess()) {
+	        var res = request.getResponseJson();
+	    	console.log('HL status:');
+	    	console.dir(res);
+	        onSuccess(res);
+	    } else {
+	        console.log(
+	            'Something went wrong in the ajax call. Error code: ', request.getLastErrorCode(),
+	            ' - message: ', request.getLastError()
+	        );
+		    if (onError) {
+		    	onError(request);
+		    }
+	    }
+	                 
+	});
+	var statusUrl = highlighterUrl + 'status';
+	if (dataEncoded) {
+		statusUrl += '?' + dataEncoded;
+	}
+	request.send(statusUrl, 'GET', dataEncoded);
+}
+
 function getQueryForSelector(querySelector, maxQueryLen) {
 	
 	// todo add support for getting query from URL parameter	
@@ -325,19 +380,6 @@ pdf_highlighter.init = function(config, hlBase) {
 	initPdfHighlighter(config, hlBase);
 };
 
-pdf_highlighter.main = function() {
-
-	// //var links = goog.dom.getElementsByTagName('a');
-	// var links = goog.dom.query('a');
-
-	// console.log('links count: ' + links.length);
-
-	// goog.array.forEach(links, function(item, index, arr) {
-	//   console.log('link item ' + (index + 1) + ': ' + item.getAttribute('href'));
-	// });
-
-	// alert('a');
-};
 
 
 /** @export */

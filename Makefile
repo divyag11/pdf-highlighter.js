@@ -46,9 +46,11 @@ all: closure
 clean:
 	rm -f $(BUILD)/*.js $(BUILD)/*.css $(CSS_MAP)
 
-closure: gss tpl js
+# closure: gss tpl js
+closure: js
 
-closure-final: gss-final tpl js-final
+# closure-final: gss-final tpl js-final
+closure-final: js-final
 
 # JavaScript
 JS_SRC         = $(SRC)/closure
@@ -59,24 +61,12 @@ G_CC_FLAGS     = --js='$(G_CLIB_GOOG)/**.js' \
                  --js='!$(G_CLIB_GOOG)/**_test.js' \
 			     --js='$(G_CLIB_3P)/**.js' \
 			     --js='$(JS_SRC)/**.js' \
-			     --js='$(SOY_JS)/*.js' \
 			     --entry_point=$(ROOT_NS) \
 			     --dependency_mode=STRICT \
 			     --generate_exports \
 			     --output_wrapper "(function() {%output%}).call(window);" \
 			     --compilation_level=ADVANCED_OPTIMIZATIONS
 			
-# G_CC_FLAGS_OLD     = --root=$(G_CLIB_GOOG) \
-# 			     --root=$(G_CLIB_3P) \
-# 			     --root=$(JS_SRC) \
-# 			     --root=$(SOY_JS) \
-# 			     --namespace=$(ROOT_NS) \
-# 			     --output_mode=compiled \
-# 			     --compiler_jar=$(G_CC) \
-# 			     -f --js=$(G_CLIB_GOOG)/deps.js \
-# 			     -f --generate_exports \
-# 			     -f --compilation_level=ADVANCED_OPTIMIZATIONS
-
 G_CC_DFLAGS    = $(G_CC_FLAGS) \
 			     --formatting=PRETTY_PRINT \
 			     --debug \
@@ -105,40 +95,9 @@ G_CC_DFLAGS    = $(G_CC_FLAGS) \
 			     --jscomp_warning=unknownDefines \
 			     --jscomp_warning=uselessCode \
 			     --jscomp_warning=visibility
-# G_CC_DFLAGS    = $(G_CC_FLAGS) \
-# 			     -f --formatting=PRETTY_PRINT \
-# 			     -f --debug \
-# 			     -f --jscomp_warning=lintChecks \
-# 			     -f --jscomp_warning=accessControls \
-# 			     -f --jscomp_warning=ambiguousFunctionDecl \
-# 			     -f --jscomp_warning=checkRegExp \
-# 			     -f --jscomp_warning=checkTypes \
-# 			     -f --jscomp_warning=checkVars \
-# 			     -f --jscomp_warning=const \
-# 			     -f --jscomp_warning=constantProperty \
-# 			     -f --jscomp_warning=deprecated \
-# 			     -f --jscomp_warning=duplicateMessage \
-# 			     -f --jscomp_warning=es5Strict \
-# 			     -f --jscomp_warning=externsValidation \
-# 			     -f --jscomp_warning=fileoverviewTags \
-# 			     -f --jscomp_warning=globalThis \
-# 			     -f --jscomp_warning=internetExplorerChecks \
-# 			     -f --jscomp_warning=invalidCasts \
-# 			     -f --jscomp_warning=missingProperties \
-# 			     -f --jscomp_warning=nonStandardJsDocs \
-# 			     -f --jscomp_warning=strictModuleDepCheck \
-# 			     -f --jscomp_warning=typeInvalidation \
-# 			     -f --jscomp_warning=undefinedNames \
-# 			     -f --jscomp_warning=undefinedVars \
-# 			     -f --jscomp_warning=unknownDefines \
-# 			     -f --jscomp_warning=uselessCode \
-# 			     -f --jscomp_warning=visibility
+
 G_CC_PFLAGS    = $(G_CC_FLAGS) \
 			     --js=$(CSS_MAP)
-# G_LINT_FLAGS   = --exclude_files "$(CSS_MAP),$$(join-with , $(JS_TEMPLATES)/*)" \
-# 			     --recurse $(JS_SRC) \
-# 			     --strict \
-# 			     --jslint_error=all \
 
 js:
 	@$(G_CLIB_BUILD) $(G_CC_DFLAGS) --js_output_file=$(TMP_MIN_SCRIPT) \
@@ -160,43 +119,43 @@ js-size: closure-final
 # 	@bash -c '$(ACTIVENV) && source src/bash/utils.bash && gjslint $(G_LINT_FLAGS)'
 
 # Stylesheets
-MIN_SS      = $(BUILD)/$(NAMESPACE).min.css
-TMP_MIN_SS  = $(BUILD)/$(NAMESPACE).min.css.part
-CSS_MAP     = $(JS_SRC)/.css_map.js
-GSS_SRC     = $(SRC)/gss/*
-G_SS_FLAGS  =
-G_SS_PFLAGS = $(G_SS_FLAGS) \
-			  --output-renaming-map-format CLOSURE_COMPILED \
-			  --output-renaming-map $(CSS_MAP) \
-			  --rename CLOSURE
+# MIN_SS      = $(BUILD)/$(NAMESPACE).min.css
+# TMP_MIN_SS  = $(BUILD)/$(NAMESPACE).min.css.part
+# CSS_MAP     = $(JS_SRC)/.css_map.js
+# GSS_SRC     = $(SRC)/gss/*
+# G_SS_FLAGS  =
+# G_SS_PFLAGS = $(G_SS_FLAGS) \
+# 			  --output-renaming-map-format CLOSURE_COMPILED \
+# 			  --output-renaming-map $(CSS_MAP) \
+# 			  --rename CLOSURE
 
-gss:
-	@java -jar $(G_SS) $(G_SS_FLAGS) --output-file $(TMP_MIN_SS) $(GSS_SRC) \
-		&& mv $(TMP_MIN_SS) $(MIN_SS)
-	@echo $(MIN_SS)
+# gss:
+# 	@java -jar $(G_SS) $(G_SS_FLAGS) --output-file $(TMP_MIN_SS) $(GSS_SRC) \
+# 		&& mv $(TMP_MIN_SS) $(MIN_SS)
+# 	@echo $(MIN_SS)
 
-gss-final:
-	@java -jar $(G_SS) $(G_SS_PFLAGS) --output-file $(TMP_MIN_SS) $(GSS_SRC) \
-		&& mv $(TMP_MIN_SS) $(MIN_SS)
-	@echo $(MIN_SS)
-	@echo $(CSS_MAP)
+# gss-final:
+# 	@java -jar $(G_SS) $(G_SS_PFLAGS) --output-file $(TMP_MIN_SS) $(GSS_SRC) \
+# 		&& mv $(TMP_MIN_SS) $(MIN_SS)
+# 	@echo $(MIN_SS)
+# 	@echo $(CSS_MAP)
 
 
 # Templates
-TPL_SRC      = $(SRC)/soy
-SOY_JS       = $(G_TPL_ROOT)
-#SOY_JS       = $(G_TPL_ROOT)/javascript
-JS_TEMPLATES = $(JS_SRC)/highlighter/tpl
-G_TPL_FLAGS  = --codeStyle STRINGBUILDER \
-			   --cssHandlingScheme goog \
-			   --outputPathFormat $(JS_TEMPLATES)/{INPUT_FILE_NAME_NO_EXT}.js \
-			   --shouldGenerateJsdoc \
-			   --shouldProvideRequireSoyNamespaces
+# TPL_SRC      = $(SRC)/soy
+# SOY_JS       = $(G_TPL_ROOT)
+# #SOY_JS       = $(G_TPL_ROOT)/javascript
+# JS_TEMPLATES = $(JS_SRC)/highlighter/tpl
+# G_TPL_FLAGS  = --codeStyle STRINGBUILDER \
+# 			   --cssHandlingScheme goog \
+# 			   --outputPathFormat $(JS_TEMPLATES)/{INPUT_FILE_NAME_NO_EXT}.js \
+# 			   --shouldGenerateJsdoc \
+# 			   --shouldProvideRequireSoyNamespaces
 
-tpl:
-	@rm -rf $(JS_TEMPLATES)/*.js
-	@java -jar $(G_TPL) $(G_TPL_FLAGS) $(TPL_SRC)/*.soy
-	@ls -1 $(JS_TEMPLATES)/*.js
+# tpl:
+# 	@rm -rf $(JS_TEMPLATES)/*.js
+# 	@java -jar $(G_TPL) $(G_TPL_FLAGS) $(TPL_SRC)/*.soy
+# 	@ls -1 $(JS_TEMPLATES)/*.js
 
 # Dependencies
 DEPS_ROOT    = .contrib
@@ -206,28 +165,28 @@ ACTIVENV     = source $(VENV)/bin/activate
 
 G_CC_URL     = http://dl.google.com/closure-compiler/compiler-latest.tar.gz
 G_CLIB_URL   = https://github.com/google/closure-library/archive/v20170626.tar.gz
-G_TPL_URL    = https://dl.google.com/closure-templates/closure-templates-for-javascript-latest.zip
+# G_TPL_URL    = https://dl.google.com/closure-templates/closure-templates-for-javascript-latest.zip
 #G_LINT_URL   = http://closure-linter.googlecode.com/svn/trunk/
-G_SS_URL     = https://github.com/google/closure-stylesheets/releases/download/v1.4.0/closure-stylesheets.jar
+# G_SS_URL     = https://github.com/google/closure-stylesheets/releases/download/v1.4.0/closure-stylesheets.jar
 G_CC_ROOT    = $(G_ROOT)/compiler
 G_CLIB_ROOT  = $(G_ROOT)/library
-G_TPL_ROOT   = $(G_ROOT)/templates
+# G_TPL_ROOT   = $(G_ROOT)/templates
 #G_LINT_ROOT  = $(G_ROOT)/linter
-G_SS_ROOT    = $(G_ROOT)/stylesheets
+# G_SS_ROOT    = $(G_ROOT)/stylesheets
 G_CC         = $(G_CC_ROOT)/closure-compiler.jar
 G_CLIB_BUILD = java -jar $(G_CC)
 #G_CLIB_BUILD = $(G_CLIB_ROOT)/closure/bin/build/closurebuilder.py
 G_CLIB_GOOG  = $(G_CLIB_ROOT)/closure/goog
 G_CLIB_3P    = $(G_CLIB_ROOT)/third_party/closure/goog
-G_TPL        = $(G_TPL_ROOT)/SoyToJsSrcCompiler.jar
-G_SS         = $(G_SS_ROOT)/closure-stylesheets.jar
+# G_TPL        = $(G_TPL_ROOT)/SoyToJsSrcCompiler.jar
+# G_SS         = $(G_SS_ROOT)/closure-stylesheets.jar
 #G_SS         = $(G_SS_ROOT)/build/closure-stylesheets.jar
 
 deps: download-deps #build-deps
 	mkdir -p $(BUILD)
 
 download-deps: #venv-fetch
-	mkdir -p $(G_ROOT) $(G_CC_ROOT) $(G_CLIB_ROOT) $(G_SS_ROOT) $(G_TPL_ROOT)
+	mkdir -p $(G_ROOT) $(G_CC_ROOT) $(G_CLIB_ROOT) #$(G_SS_ROOT) $(G_TPL_ROOT)
 	wget -qO- $(G_CC_URL) | tar xz -C $(G_CC_ROOT)
 	if [ ! -e $(G_CC) ]; then \
 		for i in $(G_CC_ROOT)/closure-compiler-*.jar; do \
@@ -237,8 +196,8 @@ download-deps: #venv-fetch
 		done; \
 	fi
 	wget -qO- $(G_CLIB_URL) | tar xz -C $(G_CLIB_ROOT) --strip 1
-	wget -O $(G_SS) $(G_SS_URL)
-	wget -qO- -O tmp.zip $(G_TPL_URL) && unzip -o tmp.zip -d $(G_TPL_ROOT) && rm tmp.zip
+	# wget -O $(G_SS) $(G_SS_URL)
+	# wget -qO- -O tmp.zip $(G_TPL_URL) && unzip -o tmp.zip -d $(G_TPL_ROOT) && rm tmp.zip
 	#wget -qO- $(G_SS_URL) | tar xvz -C $(G_SS_ROOT)
 	#svn co $(G_TPL_URL) $(G_TPL_ROOT)
 	#git clone $(G_SS_URL) $(G_SS_ROOT)
