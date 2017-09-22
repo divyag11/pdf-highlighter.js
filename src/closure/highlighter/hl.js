@@ -317,15 +317,16 @@ function checkServerStatus(highlighterUrl, statusReqData, onSuccess, onError) {
 	var request = new goog.net.XhrIo();
 	request.headers.set('accept' ,'application/json');
 	goog.events.listen(request, 'complete', function(){
-	    if (request.isSuccess()) {
+		var statusCode = request.getStatus();
+	    if (request.isSuccess() && statusCode < 400) {
 	        var res = request.getResponseJson();
-	    	console.log('HL status:');
-	    	console.dir(res);
+	    	//console.log('HL status:');
+	    	//console.dir(res);
 	        onSuccess(res);
 	    } else {
 	        console.log(
-	            'Something went wrong in the ajax call. Error code: ', request.getLastErrorCode(),
-	            ' - message: ', request.getLastError()
+	            'Something went wrong in the ajax call. HTTP status: ' + statusCode + ' - ' + request.getStatusText() +
+	            '; Error: ' + request.getLastErrorCode() + ' - ' + request.getLastError()
 	        );
 		    if (onError) {
 		    	onError(request);
