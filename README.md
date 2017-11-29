@@ -17,3 +17,12 @@ For distribution (minimized and optimized) build run:
     make closure-final
 
 Make produces `build/pdf_highlighter.min.js`
+
+Release
+-------
+
+Run:
+
+    make js-all
+
+That will create three js files in `build/` with different compilation levels
