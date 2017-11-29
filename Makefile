@@ -39,7 +39,8 @@
 # Common
 BUILD     = build
 SRC       = src
-NAMESPACE = pdf_highlighter
+NAMESPACE = pdfHighlighter
+OUTNAME   = pdf-highlighter
 
 all: closure
 
@@ -55,10 +56,10 @@ closure-final: js-final
 # JavaScript
 JS_SRC         = $(SRC)/closure
 ROOT_NS        = $(NAMESPACE).main
-DBG_SCRIPT     = $(BUILD)/$(NAMESPACE).debug.js
-STD_SCRIPT     = $(BUILD)/$(NAMESPACE).js
-MIN_SCRIPT     = $(BUILD)/$(NAMESPACE).min.js
-TMP_MIN_SCRIPT = $(BUILD)/$(NAMESPACE).js.part
+DBG_SCRIPT     = $(BUILD)/$(OUTNAME).debug.js
+STD_SCRIPT     = $(BUILD)/$(OUTNAME).js
+MIN_SCRIPT     = $(BUILD)/$(OUTNAME).min.js
+TMP_MIN_SCRIPT = $(BUILD)/$(OUTNAME).js.part
 G_CC_FLAGS     = --js='$(G_CLIB_GOOG)/**.js' \
                  --js='!$(G_CLIB_GOOG)/**_test.js' \
 			     --js='$(G_CLIB_3P)/**.js' \
@@ -129,8 +130,8 @@ js-size: js-all
 # 	@bash -c '$(ACTIVENV) && source src/bash/utils.bash && gjslint $(G_LINT_FLAGS)'
 
 # Stylesheets
-# MIN_SS      = $(BUILD)/$(NAMESPACE).min.css
-# TMP_MIN_SS  = $(BUILD)/$(NAMESPACE).min.css.part
+# MIN_SS      = $(BUILD)/$(OUTNAME).min.css
+# TMP_MIN_SS  = $(BUILD)/$(OUTNAME).min.css.part
 # CSS_MAP     = $(JS_SRC)/.css_map.js
 # GSS_SRC     = $(SRC)/gss/*
 # G_SS_FLAGS  =

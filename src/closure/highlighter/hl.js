@@ -1,5 +1,5 @@
-goog.provide('pdf_highlighter');
-goog.provide('pdf_highlighter.main');
+goog.provide('pdfHighlighter');
+goog.provide('pdfHighlighter.main');
 
 goog.require('goog.Uri');
 goog.require('goog.Uri.QueryData');
@@ -8,9 +8,9 @@ goog.require('goog.dom');
 goog.require('goog.dom.dataset');
 goog.require('goog.events');
 goog.require('goog.net.XhrIo');
-goog.require('pdf_highlighter.util');
+goog.require('pdfHighlighter.util');
 
-var ieVersion = pdf_highlighter.util.detectIE();
+var ieVersion = pdfHighlighter.util.detectIE();
 
 
 var initPdfHighlighter = function (config, hlBase) {
@@ -180,12 +180,12 @@ var initPdfHighlighter = function (config, hlBase) {
         href = goog.dom.dataset.get(el, 'href');
       }
       if (href) {
-        data['uri'] = pdf_highlighter.util.resolvePath(href, dirUrl, resolveDocumentBase);
+        data['uri'] = pdfHighlighter.util.resolvePath(href, dirUrl, resolveDocumentBase);
       }
 
       var altUrl = goog.dom.dataset.get(el, 'altUrl');
       if (!altUrl && href)
-        altUrl = pdf_highlighter.util.resolvePath(href, dirUrl, resolveDocumentBase);
+        altUrl = pdfHighlighter.util.resolvePath(href, dirUrl, resolveDocumentBase);
 
 
       var queryProvider;
@@ -200,7 +200,7 @@ var initPdfHighlighter = function (config, hlBase) {
       var queryFromProvider = queryProvider ? queryProvider() : undefined;
 
 
-      var query = config.query || queryFromProvider || pdf_highlighter.util.findData(el, 'query');
+      var query = config.query || queryFromProvider || pdfHighlighter.util.findData(el, 'query');
       if (query) {
         if (typeof config['filterQuery'] === 'function') {
           query = config['filterQuery'](query);
@@ -218,14 +218,14 @@ var initPdfHighlighter = function (config, hlBase) {
             if (xml.match(new RegExp('/<xml/i')))
               data['xml'] = xml;
             else
-              data['xml'] = pdf_highlighter.util.resolvePath(xml, dirUrl, resolveXmlBase);
+              data['xml'] = pdfHighlighter.util.resolvePath(xml, dirUrl, resolveXmlBase);
           }
         }
         else {
           var pdf = href.substring(0, ind); // TODO need to be url-decoded if from param?
           var xml = href.substring(ind + 5);
-          data['uri'] = pdf_highlighter.util.resolvePath(pdf, dirUrl, resolveDocumentBase);
-          data['xml'] = pdf_highlighter.util.resolvePath(xml, dirUrl, resolveXmlBase);
+          data['uri'] = pdfHighlighter.util.resolvePath(pdf, dirUrl, resolveDocumentBase);
+          data['xml'] = pdfHighlighter.util.resolvePath(xml, dirUrl, resolveXmlBase);
         }
       }
 
@@ -238,7 +238,7 @@ var initPdfHighlighter = function (config, hlBase) {
 
       var viewUrl = goog.dom.dataset.get(el, 'viewUrl');
       if (viewUrl)
-        data['viewUrl'] = pdf_highlighter.util.resolvePath(viewUrl, dirUrl, resolveViewUrl);
+        data['viewUrl'] = pdfHighlighter.util.resolvePath(viewUrl, dirUrl, resolveViewUrl);
 
       addParameter(data, el, 'removePagesWithoutMatches', config['removePagesWithoutMatches']);
       addParameter(data, el, 'addNavigation', config['addNavigation']);
@@ -388,13 +388,13 @@ function isInputBox(element) {
 
 
 /** @export */
-pdf_highlighter.init = function (config, hlBase) {
+pdfHighlighter.init = function (config, hlBase) {
   initPdfHighlighter(config, hlBase);
 };
 
 
 /** @export */
-pdf_highlighter.initPdfHighlighter = initPdfHighlighter;
+pdfHighlighter.initPdfHighlighter = initPdfHighlighter;
 
 /** @export */
-pdf_highlighter.getQueryForSelector = getQueryForSelector;
+pdfHighlighter.getQueryForSelector = getQueryForSelector;

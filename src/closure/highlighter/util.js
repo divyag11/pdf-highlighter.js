@@ -1,4 +1,4 @@
-goog.provide('pdf_highlighter.util');
+goog.provide('pdfHighlighter.util');
 
 goog.require('goog.dom.dataset');
 
@@ -112,11 +112,11 @@ function detectIE() {
 //var ieVersion = detectIE();
 
 /** @export */
-pdf_highlighter.util.detectIE = detectIE;
+pdfHighlighter.util.detectIE = detectIE;
 
 /** @export */
-pdf_highlighter.util.resolvePath = resolvePath;
+pdfHighlighter.util.resolvePath = resolvePath;
 
 /** @export */
-pdf_highlighter.util.findData = findData;
+pdfHighlighter.util.findData = findData;
 
