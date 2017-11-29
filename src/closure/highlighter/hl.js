@@ -353,21 +353,25 @@ function getQueryForSelector(querySelector, maxQueryLen) {
   // todo add support for getting query from URL parameter?
 
   var query;
-  var element = document.querySelector(querySelector);
-  if (element) {
-    if (isInputBox(element)) {
-      query = element.value;
+  var elements = document.querySelectorAll(querySelector);
+  // get the first found element from which we obtained text
+  for (var i = 0; i < elements.length; i++) {
+    var element = elements[i];
+    if (element) {
+      if (isInputBox(element)) {
+        query = element.value;
+      }
+      else {
+        // assuming we're dealing with HTML element so get its text
+        query = element.textContent;
+      }
+      query = query.trim();
+      if (maxQueryLen && query.length > maxQueryLen) {
+        query = query.substring(0, maxQueryLen);
+      }
+      if (query.length !== 0)
+        return query;
     }
-    else {
-      // assuming we're dealing with HTML element so get its text
-      query = element.textContent;
-    }
-    query = query.trim();
-    if (maxQueryLen && query.length > maxQueryLen) {
-      query = query.substring(0, maxQueryLen);
-    }
-    if (query.length === 0)
-      query = undefined;
   }
   return query;
 }
@@ -378,7 +382,7 @@ function isInputBox(element) {
   if (tagName !== 'input') return false;
   var type = element.getAttribute('type').toLowerCase();
   // if any of these input types is not supported by a browser, it will behave as input type text.
-  var inputTypes = ['text', 'number', 'email', 'search'];
+  var inputTypes = ['text', 'number', 'email', 'search', 'hidden'];
   return inputTypes.indexOf(type) >= 0;
 }
 
