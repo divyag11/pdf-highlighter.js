@@ -55,8 +55,10 @@ closure-final: js-final
 # JavaScript
 JS_SRC         = $(SRC)/closure
 ROOT_NS        = $(NAMESPACE).main
+DBG_SCRIPT     = $(BUILD)/$(NAMESPACE).debug.js
+STD_SCRIPT     = $(BUILD)/$(NAMESPACE).js
 MIN_SCRIPT     = $(BUILD)/$(NAMESPACE).min.js
-TMP_MIN_SCRIPT = $(BUILD)/$(NAMESPACE).min.js.part
+TMP_MIN_SCRIPT = $(BUILD)/$(NAMESPACE).js.part
 G_CC_FLAGS     = --js='$(G_CLIB_GOOG)/**.js' \
                  --js='!$(G_CLIB_GOOG)/**_test.js' \
 			     --js='$(G_CLIB_3P)/**.js' \
@@ -64,9 +66,8 @@ G_CC_FLAGS     = --js='$(G_CLIB_GOOG)/**.js' \
 			     --entry_point=$(ROOT_NS) \
 			     --dependency_mode=STRICT \
 			     --generate_exports \
-			     --output_wrapper "(function() {%output%}).call(window);" \
-			     --compilation_level=ADVANCED_OPTIMIZATIONS
-			
+			     --output_wrapper "(function() {%output%}).call(window);"
+
 G_CC_DFLAGS    = $(G_CC_FLAGS) \
 			     --formatting=PRETTY_PRINT \
 			     --debug \
@@ -96,24 +97,33 @@ G_CC_DFLAGS    = $(G_CC_FLAGS) \
 			     --jscomp_warning=uselessCode \
 			     --jscomp_warning=visibility
 
+G_CC_SFLAGS    = $(G_CC_FLAGS) \
+			     --compilation_level=SIMPLE_OPTIMIZATIONS
+			     #--js=$(CSS_MAP)
+
 G_CC_PFLAGS    = $(G_CC_FLAGS) \
-			     --js=$(CSS_MAP)
+			     --compilation_level=ADVANCED_OPTIMIZATIONS
+			     #--js=$(CSS_MAP)
 
 js:
 	@$(G_CLIB_BUILD) $(G_CC_DFLAGS) --js_output_file=$(TMP_MIN_SCRIPT) \
-		&& mv $(TMP_MIN_SCRIPT) $(MIN_SCRIPT)
-#	@$(G_CLIB_BUILD) $(G_CC_DFLAGS) --output_file=$(TMP_MIN_SCRIPT) \
-		&& mv $(TMP_MIN_SCRIPT) $(MIN_SCRIPT)
+		&& mv $(TMP_MIN_SCRIPT) $(DBG_SCRIPT)
+
+js-std:
+	@$(G_CLIB_BUILD) $(G_CC_SFLAGS) --js_output_file=$(TMP_MIN_SCRIPT) \
+		&& mv $(TMP_MIN_SCRIPT) $(STD_SCRIPT)
 
 js-final:
-	@$(G_CLIB_BUILD) $(G_CC_FLAGS) --js_output_file=$(TMP_MIN_SCRIPT) \
+	@$(G_CLIB_BUILD) $(G_CC_PFLAGS) --js_output_file=$(TMP_MIN_SCRIPT) \
 		&& mv $(TMP_MIN_SCRIPT) $(MIN_SCRIPT)
-	# @$(G_CLIB_BUILD) $(G_CC_PFLAGS) --output_file=$(TMP_MIN_SCRIPT) \
-	# 	&& mv $(TMP_MIN_SCRIPT) $(MIN_SCRIPT)
 
-js-size: closure-final
+js-all: js js-std js-final
+
+js-size: js-all
+	@du -h $(DBG_SCRIPT)
+	@du -h $(STD_SCRIPT)
 	@du -h $(MIN_SCRIPT)
-	@du -h $(MIN_SS)
+	#@du -h $(MIN_SS)
 
 # lint:
 # 	@bash -c '$(ACTIVENV) && source src/bash/utils.bash && gjslint $(G_LINT_FLAGS)'
