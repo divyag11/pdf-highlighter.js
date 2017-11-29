@@ -176,11 +176,13 @@ var initPdfHighlighter = function (config, hlBase) {
       var dirUrl = url.substring(0, url.lastIndexOf("/") + 1);
 
       var href = el.getAttribute('href');
+      var hrefHasXmlRef = false; // this flag gives advantage to xml hl (over query) for more sane defaults used by lightbox
       if (!href) {
         href = goog.dom.dataset.get(el, 'href');
       }
       if (href) {
         data['uri'] = pdfHighlighter.util.resolvePath(href, dirUrl, resolveDocumentBase);
+        hrefHasXmlRef = href.indexOf('xml=') !== -1;
       }
 
       var altUrl = goog.dom.dataset.get(el, 'altUrl');
@@ -201,7 +203,7 @@ var initPdfHighlighter = function (config, hlBase) {
 
 
       var query = config.query || queryFromProvider || pdfHighlighter.util.findData(el, 'query');
-      if (query) {
+      if (query && !hrefHasXmlRef) {
         if (typeof config['filterQuery'] === 'function') {
           query = config['filterQuery'](query);
         }
