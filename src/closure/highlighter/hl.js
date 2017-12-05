@@ -12,8 +12,28 @@ goog.require('pdfHighlighter.util');
 
 var ieVersion = pdfHighlighter.util.detectIE();
 
+/** @constructor */
+var HlInitedInfo = function() {
+  this.elementListeners = [];
+};
+
+/** @export */
+HlInitedInfo.prototype.unregister = function() {
+  goog.array.forEach(this.elementListeners, function (item) {
+    if (item.listener) {
+      goog.events.unlisten(item.element, goog.events.EventType.CLICK, item.listener);
+      goog.dom.dataset.remove(item.element, 'hlInited');
+    }
+    else {
+      // fixme need recovery for href
+    }
+  });
+};
+
 
 var initPdfHighlighter = function (config, hlBase) {
+
+  var cmdObject = new HlInitedInfo();
 
   config = config || {};
 
@@ -73,7 +93,10 @@ var initPdfHighlighter = function (config, hlBase) {
 
   function attachHighlighterForAll(links, highlighterUrl, apiToken) {
     goog.array.forEach(links, function (item, index, arr) {
-      attachHighlighter(item, highlighterUrl, apiToken);
+      var r = attachHighlighter(item, highlighterUrl, apiToken);
+      if (goog.isObject(r)) {
+        cmdObject.elementListeners.push(r);
+      }
     });
   }
 
@@ -84,6 +107,8 @@ var initPdfHighlighter = function (config, hlBase) {
     }
 
     var highlightUrlBuilder = getHighlightUrlBuilder(config);
+    var self = el;
+    var addedListener;
 
     if (typeof config['updateAttr'] === 'string') {
       var data = collectParameters(el, config);
@@ -103,71 +128,68 @@ var initPdfHighlighter = function (config, hlBase) {
         el.setAttribute('href', url);
       }
     }
-    else {
-      var self = el;
-
-      // otherwise listen for a click...
-      goog.events.listen(el, goog.events.EventType.CLICK, function (e) {
-
-        var data = collectParameters(self, config);
-        var method = getHighlightingMethodForParams(data);
-        var postUrl = highlightUrlBuilder(highlighterUrl, method); // building url without data as we'll use POST method
-        var dataEncoded = goog.Uri.QueryData.createFromMap(data).toString();
-
-        if (typeof config['onHighlightingLinkClick'] === 'function') {
-          var ctx = {};
-          ctx['highlighterUrl'] = highlighterUrl;
-          ctx['highlightingMethod'] = method;
-          ctx['endpoint'] = postUrl;
-          ctx['params'] = data;
-          ctx['paramsEncoded'] = dataEncoded;
-          ctx['apiToken'] = apiToken;
-          if (config['onHighlightingLinkClick'](self, ctx, e) === false) {
-            return; // if callback returned false, ignoring the click
-          }
-        }
-
-        // post URL is undefined if parameter validation failed so we exit before canceling the event
-        if (!postUrl)
-          return;
-        e.preventDefault();
-
-        var request = new goog.net.XhrIo();
-        request.headers.set('content-type', 'application/json');
-        if (apiToken) {
-          request.headers.set('x-highlighter-api-token', apiToken);
-        }
-        goog.events.listen(request, 'complete', function () {
-          if (request.isSuccess()) {
-            var res = request.getResponseJson();
-            if (typeof config['onHighlightingResult'] === 'function') {
-              if (config['onHighlightingResult'](res, self) === false) {
-                return; // if callback returned false, ignoring click
-              }
-            }
-            if (res['success'] === true) {
-              showDocument(res['documentUrl'], res);
-            }
-            else {
-              onError();
-            }
-          } else {
-            onError();
-            // print error info to the console
-            console.log(
-              'Something went wrong in the ajax call. Error code: ', request.getLastErrorCode(),
-              ' - message: ', request.getLastError()
-            );
-          }
-        });
-
-        // start the request by setting POST method and passing the data object converted to a queryString
-        request.send(postUrl, 'POST', dataEncoded);
-      });
+    else { // otherwise listen for a click...
+      goog.events.listen(el, goog.events.EventType.CLICK, clickListener);
+      addedListener = clickListener;
     }
 
-    goog.dom.dataset.set(el, 'hlInited', 'true');
+    function clickListener(e) {
 
+      var data = collectParameters(self, config);
+      var method = getHighlightingMethodForParams(data);
+      var postUrl = highlightUrlBuilder(highlighterUrl, method); // building url without data as we'll use POST method
+      var dataEncoded = goog.Uri.QueryData.createFromMap(data).toString();
+
+      if (typeof config['onHighlightingLinkClick'] === 'function') {
+        var ctx = {};
+        ctx['highlighterUrl'] = highlighterUrl;
+        ctx['highlightingMethod'] = method;
+        ctx['endpoint'] = postUrl;
+        ctx['params'] = data;
+        ctx['paramsEncoded'] = dataEncoded;
+        ctx['apiToken'] = apiToken;
+        if (config['onHighlightingLinkClick'](self, ctx, e) === false) {
+          return; // if callback returned false, ignoring the click
+        }
+      }
+
+      // post URL is undefined if parameter validation failed so we exit before canceling the event
+      if (!postUrl)
+        return;
+      e.preventDefault();
+
+      var request = new goog.net.XhrIo();
+      request.headers.set('content-type', 'application/json');
+      if (apiToken) {
+        request.headers.set('x-highlighter-api-token', apiToken);
+      }
+      goog.events.listen(request, 'complete', function () {
+        if (request.isSuccess()) {
+          var res = request.getResponseJson();
+          if (typeof config['onHighlightingResult'] === 'function') {
+            if (config['onHighlightingResult'](res, self) === false) {
+              return; // if callback returned false, ignoring click
+            }
+          }
+          if (res['success'] === true) {
+            showDocument(res['documentUrl'], res);
+          }
+          else {
+            onError();
+          }
+        } else {
+          onError();
+          // print error info to the console
+          console.log(
+            'Something went wrong in the ajax call. Error code: ', request.getLastErrorCode(),
+            ' - message: ', request.getLastError()
+          );
+        }
+      });
+
+      // start the request by setting POST method and passing the data object converted to a queryString
+      request.send(postUrl, 'POST', dataEncoded);
+    }
 
     function collectParameters(el, config) {
       var data = {};
@@ -286,7 +308,15 @@ var initPdfHighlighter = function (config, hlBase) {
       //window.location = altUrl;
       // fixme improve error handling!
     }
+
+    goog.dom.dataset.set(el, 'hlInited', 'true');
+    return {
+      element: el,
+      listener: addedListener
+    };
   }
+
+  return cmdObject;
 };
 
 function checkServerStatus(highlighterUrl, statusReqData, onSuccess, onError) {
@@ -391,7 +421,7 @@ function isInputBox(element) {
 
 /** @export */
 pdfHighlighter.init = function (config, hlBase) {
-  initPdfHighlighter(config, hlBase);
+  return initPdfHighlighter(config, hlBase);
 };
 
 
