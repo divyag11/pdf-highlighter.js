@@ -194,6 +194,10 @@ var initPdfHighlighter = function (config, hlBase) {
     function collectParameters(el, config) {
       var data = {};
 
+      if (typeof config['apiKey'] === 'string') {
+        data['apiKey'] = config['apiKey'];
+      }
+
       var url = window.location.href;
       var dirUrl = url.substring(0, url.lastIndexOf("/") + 1);
 
