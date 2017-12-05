@@ -8526,15 +8526,62 @@ goog.exportSymbol("pdfHighlighter.util.resolvePath", pdfHighlighter.util.resolve
 pdfHighlighter.util.findData = findData;
 goog.exportSymbol("pdfHighlighter.util.findData", pdfHighlighter.util.findData);
 pdfHighlighter.main = {};
-var ieVersion = pdfHighlighter.util.detectIE(), initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $checkStatus_hlBase$$) {
+var ieVersion = pdfHighlighter.util.detectIE(), HlInitedInfo = function $HlInitedInfo$() {
+  this.elementListeners = [];
+};
+HlInitedInfo.prototype.unregister = function $HlInitedInfo$$unregister$() {
+  goog.array.forEach(this.elementListeners, function($item$$) {
+    $item$$.listener && (goog.events.unlisten($item$$.element, goog.events.EventType.CLICK, $item$$.listener), goog.dom.dataset.remove($item$$.element, "hlInited"));
+  });
+};
+goog.exportProperty(HlInitedInfo.prototype, "unregister", HlInitedInfo.prototype.unregister);
+var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $checkStatus_hlBase$$) {
   function $attachHighlighterForAll$$($links$$, $highlighterUrl$$, $apiToken$$) {
-    goog.array.forEach($links$$, function($item$$, $index$$, $arr$$) {
-      $attachHighlighter$$($item$$, $highlighterUrl$$, $apiToken$$);
+    goog.array.forEach($links$$, function($item$jscomp$10_r$$, $index$$, $arr$$) {
+      $item$jscomp$10_r$$ = $attachHighlighter$$($item$jscomp$10_r$$, $highlighterUrl$$, $apiToken$$);
+      goog.isObject($item$jscomp$10_r$$) && $cmdObject$$.elementListeners.push($item$jscomp$10_r$$);
     });
   }
   function $attachHighlighter$$($el$$, $highlighterUrl$$, $apiToken$$) {
+    function $clickListener$$($e$$) {
+      var $data$$ = $collectParameters$$($self$$, $config$jscomp$0$$), $method$$ = getHighlightingMethodForParams($data$$), $postUrl$$ = $highlightUrlBuilder$$($highlighterUrl$$, $method$$), $dataEncoded$$ = goog.Uri.QueryData.createFromMap($data$$).toString();
+      if ("function" === typeof $config$jscomp$0$$.onHighlightingLinkClick) {
+        var $ctx$$ = {};
+        $ctx$$.highlighterUrl = $highlighterUrl$$;
+        $ctx$$.highlightingMethod = $method$$;
+        $ctx$$.endpoint = $postUrl$$;
+        $ctx$$.params = $data$$;
+        $ctx$$.paramsEncoded = $dataEncoded$$;
+        $ctx$$.apiToken = $apiToken$$;
+        if (!1 === $config$jscomp$0$$.onHighlightingLinkClick($self$$, $ctx$$, $e$$)) {
+          return;
+        }
+      }
+      if ($postUrl$$) {
+        $e$$.preventDefault();
+        var $request$$ = new goog.net.XhrIo;
+        $request$$.headers.set("content-type", "application/json");
+        $apiToken$$ && $request$$.headers.set("x-highlighter-api-token", $apiToken$$);
+        goog.events.listen($request$$, "complete", function() {
+          if ($request$$.isSuccess()) {
+            var $res$jscomp$7_url$$ = $request$$.getResponseJson();
+            if (("function" !== typeof $config$jscomp$0$$.onHighlightingResult || !1 !== $config$jscomp$0$$.onHighlightingResult($res$jscomp$7_url$$, $self$$)) && !0 === $res$jscomp$7_url$$.success) {
+              var $docUrl$jscomp$inline_4_urlParts$$ = $res$jscomp$7_url$$.documentUrl;
+              $res$jscomp$7_url$$ = $docUrl$jscomp$inline_4_urlParts$$;
+              $viewerUrl$$ && ($docUrl$jscomp$inline_4_urlParts$$ = $docUrl$jscomp$inline_4_urlParts$$.split("#"), $res$jscomp$7_url$$ = $viewerUrl$$ + encodeURIComponent($docUrl$jscomp$inline_4_urlParts$$[0]), 1 < $docUrl$jscomp$inline_4_urlParts$$.length && ($res$jscomp$7_url$$ += "#" + $docUrl$jscomp$inline_4_urlParts$$[1]));
+              window.location = $res$jscomp$7_url$$;
+            }
+          } else {
+            console.log("Something went wrong in the ajax call. Error code: ", $request$$.getLastErrorCode(), " - message: ", $request$$.getLastError());
+          }
+        });
+        $request$$.send($postUrl$$, "POST", $dataEncoded$$);
+      }
+    }
     function $collectParameters$$($el$jscomp$4_newData$$, $config$$) {
-      var $data$$ = {}, $dirUrl$jscomp$1_url$$ = window.location.href;
+      var $data$$ = {};
+      "string" === typeof $config$$.apiKey && ($data$$.apiKey = $config$$.apiKey);
+      var $dirUrl$jscomp$1_url$$ = window.location.href;
       $dirUrl$jscomp$1_url$$ = $dirUrl$jscomp$1_url$$.substring(0, $dirUrl$jscomp$1_url$$.lastIndexOf("/") + 1);
       var $href$$ = $el$jscomp$4_newData$$.getAttribute("href");
       var $hrefHasXmlRef_pdf$$ = !1;
@@ -8564,7 +8611,7 @@ var ieVersion = pdfHighlighter.util.detectIE(), initPdfHighlighter = function $i
       return $data$$;
     }
     if ("true" !== goog.dom.dataset.get($el$$, "hlInited")) {
-      var $highlightUrlBuilder$$ = getHighlightUrlBuilder($config$jscomp$0$$);
+      var $highlightUrlBuilder$$ = getHighlightUrlBuilder($config$jscomp$0$$), $self$$ = $el$$;
       if ("string" === typeof $config$jscomp$0$$.updateAttr) {
         var $data$jscomp$35_url$$ = $collectParameters$$($el$$, $config$jscomp$0$$);
         ($data$jscomp$35_url$$ = $highlightUrlBuilder$$($highlighterUrl$$, getHighlightingMethodForParams($data$jscomp$35_url$$), $data$jscomp$35_url$$)) && $el$$.setAttribute($config$jscomp$0$$.updateAttr, $data$jscomp$35_url$$);
@@ -8576,45 +8623,14 @@ var ieVersion = pdfHighlighter.util.detectIE(), initPdfHighlighter = function $i
           $el$$.setAttribute("href", $data$jscomp$35_url$$);
         }
       } else {
-        goog.events.listen($el$$, goog.events.EventType.CLICK, function($e$$) {
-          var $data$$ = $collectParameters$$($el$$, $config$jscomp$0$$), $method$$ = getHighlightingMethodForParams($data$$), $postUrl$$ = $highlightUrlBuilder$$($highlighterUrl$$, $method$$), $dataEncoded$$ = goog.Uri.QueryData.createFromMap($data$$).toString();
-          if ("function" === typeof $config$jscomp$0$$.onHighlightingLinkClick) {
-            var $ctx$$ = {};
-            $ctx$$.highlighterUrl = $highlighterUrl$$;
-            $ctx$$.highlightingMethod = $method$$;
-            $ctx$$.endpoint = $postUrl$$;
-            $ctx$$.params = $data$$;
-            $ctx$$.paramsEncoded = $dataEncoded$$;
-            $ctx$$.apiToken = $apiToken$$;
-            if (!1 === $config$jscomp$0$$.onHighlightingLinkClick($el$$, $ctx$$, $e$$)) {
-              return;
-            }
-          }
-          if ($postUrl$$) {
-            $e$$.preventDefault();
-            var $request$$ = new goog.net.XhrIo;
-            $request$$.headers.set("content-type", "application/json");
-            $apiToken$$ && $request$$.headers.set("x-highlighter-api-token", $apiToken$$);
-            goog.events.listen($request$$, "complete", function() {
-              if ($request$$.isSuccess()) {
-                var $res$jscomp$7_url$$ = $request$$.getResponseJson();
-                if (("function" !== typeof $config$jscomp$0$$.onHighlightingResult || !1 !== $config$jscomp$0$$.onHighlightingResult($res$jscomp$7_url$$, $el$$)) && !0 === $res$jscomp$7_url$$.success) {
-                  var $docUrl$jscomp$inline_4_urlParts$$ = $res$jscomp$7_url$$.documentUrl;
-                  $res$jscomp$7_url$$ = $docUrl$jscomp$inline_4_urlParts$$;
-                  $viewerUrl$$ && ($docUrl$jscomp$inline_4_urlParts$$ = $docUrl$jscomp$inline_4_urlParts$$.split("#"), $res$jscomp$7_url$$ = $viewerUrl$$ + encodeURIComponent($docUrl$jscomp$inline_4_urlParts$$[0]), 1 < $docUrl$jscomp$inline_4_urlParts$$.length && ($res$jscomp$7_url$$ += "#" + $docUrl$jscomp$inline_4_urlParts$$[1]));
-                  window.location = $res$jscomp$7_url$$;
-                }
-              } else {
-                console.log("Something went wrong in the ajax call. Error code: ", $request$$.getLastErrorCode(), " - message: ", $request$$.getLastError());
-              }
-            });
-            $request$$.send($postUrl$$, "POST", $dataEncoded$$);
-          }
-        });
+        goog.events.listen($el$$, goog.events.EventType.CLICK, $clickListener$$);
+        var $addedListener$$ = $clickListener$$;
       }
       goog.dom.dataset.set($el$$, "hlInited", "true");
+      return {element:$el$$, listener:$addedListener$$};
     }
   }
+  var $cmdObject$$ = new HlInitedInfo;
   $config$jscomp$0$$ = $config$jscomp$0$$ || {};
   var $highlighterUrl$$ = $checkStatus_hlBase$$ || $config$jscomp$0$$.highlighterUrl || window.HighlighterBase || "/";
   -1 === $highlighterUrl$$.indexOf("/", $highlighterUrl$$.length - 1) && ($highlighterUrl$$ += "/");
@@ -8636,6 +8652,7 @@ var ieVersion = pdfHighlighter.util.detectIE(), initPdfHighlighter = function $i
     $attachHighlighterForAll$$($links$$, void 0, void 0);
     console.log("PDF highlighting disabled because status check failed.");
   }) : $attachHighlighterForAll$$($links$$, $highlighterUrl$$, void 0);
+  return $cmdObject$$;
 };
 function checkServerStatus($highlighterUrl$$, $dataEncoded$jscomp$1_statusReqData$$, $onSuccess$$, $onError$$) {
   $dataEncoded$jscomp$1_statusReqData$$ = $dataEncoded$jscomp$1_statusReqData$$ ? goog.Uri.QueryData.createFromMap($dataEncoded$jscomp$1_statusReqData$$).toString() : void 0;
@@ -8699,7 +8716,7 @@ function isInputBox($element$jscomp$39_type$$) {
   return 0 <= ["text", "number", "email", "search", "hidden"].indexOf($element$jscomp$39_type$$);
 }
 pdfHighlighter.init = function $pdfHighlighter$init$($config$$, $hlBase$$) {
-  initPdfHighlighter($config$$, $hlBase$$);
+  return initPdfHighlighter($config$$, $hlBase$$);
 };
 goog.exportSymbol("pdfHighlighter.init", pdfHighlighter.init);
 pdfHighlighter.initPdfHighlighter = initPdfHighlighter;
