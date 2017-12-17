@@ -8508,6 +8508,13 @@ function resolve($resolved_url_url$$, $base_url$$) {
 function getLocation($href$jscomp$1_match$$) {
   return ($href$jscomp$1_match$$ = $href$jscomp$1_match$$.match(/^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/)) && {protocol:$href$jscomp$1_match$$[1], host:$href$jscomp$1_match$$[2], hostname:$href$jscomp$1_match$$[3], port:$href$jscomp$1_match$$[4], pathname:$href$jscomp$1_match$$[5], search:$href$jscomp$1_match$$[6], hash:$href$jscomp$1_match$$[7]};
 }
+function getFirstBoolean($arr$$) {
+  for (var $i$$ = 0; $i$$ < $arr$$.length; $i$$++) {
+    if (goog.isBoolean($arr$$[$i$$])) {
+      return $arr$$[$i$$];
+    }
+  }
+}
 function detectIE() {
   var $ua$$ = window.navigator.userAgent, $edge_msie$jscomp$1_rv$$ = $ua$$.indexOf("MSIE ");
   if (0 < $edge_msie$jscomp$1_rv$$) {
@@ -8525,6 +8532,8 @@ pdfHighlighter.util.resolvePath = resolvePath;
 goog.exportSymbol("pdfHighlighter.util.resolvePath", pdfHighlighter.util.resolvePath);
 pdfHighlighter.util.findData = findData;
 goog.exportSymbol("pdfHighlighter.util.findData", pdfHighlighter.util.findData);
+pdfHighlighter.util.getFirstBoolean = getFirstBoolean;
+goog.exportSymbol("pdfHighlighter.util.getFirstBoolean", pdfHighlighter.util.getFirstBoolean);
 pdfHighlighter.main = {};
 var ieVersion = pdfHighlighter.util.detectIE(), HlInitedInfo = function $HlInitedInfo$() {
   this.elementListeners = [];
@@ -8559,23 +8568,24 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
       }
       if ($postUrl$$) {
         $e$$.preventDefault();
-        var $request$$ = new goog.net.XhrIo;
-        $request$$.headers.set("content-type", "application/json");
-        $apiToken$$ && $request$$.headers.set("x-highlighter-api-token", $apiToken$$);
-        goog.events.listen($request$$, "complete", function() {
-          if ($request$$.isSuccess()) {
-            var $res$jscomp$7_url$$ = $request$$.getResponseJson();
-            if (("function" !== typeof $config$jscomp$0$$.onHighlightingResult || !1 !== $config$jscomp$0$$.onHighlightingResult($res$jscomp$7_url$$, $self$$)) && !0 === $res$jscomp$7_url$$.success) {
-              var $docUrl$jscomp$inline_4_urlParts$$ = $res$jscomp$7_url$$.documentUrl;
-              $res$jscomp$7_url$$ = $docUrl$jscomp$inline_4_urlParts$$;
-              $viewerUrl$$ && ($docUrl$jscomp$inline_4_urlParts$$ = $docUrl$jscomp$inline_4_urlParts$$.split("#"), $res$jscomp$7_url$$ = $viewerUrl$$ + encodeURIComponent($docUrl$jscomp$inline_4_urlParts$$[0]), 1 < $docUrl$jscomp$inline_4_urlParts$$.length && ($res$jscomp$7_url$$ += "#" + $docUrl$jscomp$inline_4_urlParts$$[1]));
-              window.location = $res$jscomp$7_url$$;
+        var $target$$ = $e$$.target.getAttribute("target");
+        if ($config$jscomp$0$$.viewer) {
+          $e$$ = buildViewerUrl($config$jscomp$0$$.viewer, {file:$data$$.uri, highlightsFile:$postUrl$$ + "?" + $dataEncoded$$}), $showDocument$$($e$$, $target$$);
+        } else {
+          var $request$$ = new goog.net.XhrIo;
+          $request$$.headers.set("accept", "application/json");
+          $request$$.headers.set("content-type", "application/x-www-form-urlencoded");
+          $apiToken$$ ? $request$$.headers.set("x-api-token", $apiToken$$) : $request$$.headers.set("x-api-token", "demo");
+          goog.events.listen($request$$, "complete", function() {
+            if ($request$$.isSuccess()) {
+              var $res$$ = $request$$.getResponseJson();
+              "function" === typeof $config$jscomp$0$$.onHighlightingResult && !1 === $config$jscomp$0$$.onHighlightingResult($res$$, $self$$) || !0 !== $res$$.success || $showDocument$$($res$$.documentUrl, $target$$);
+            } else {
+              console.log("Something went wrong in the ajax call. Error code: ", $request$$.getLastErrorCode(), " - message: ", $request$$.getLastError());
             }
-          } else {
-            console.log("Something went wrong in the ajax call. Error code: ", $request$$.getLastErrorCode(), " - message: ", $request$$.getLastError());
-          }
-        });
-        $request$$.send($postUrl$$, "POST", $dataEncoded$$);
+          });
+          $request$$.send($postUrl$$, "POST", $dataEncoded$$);
+        }
       }
     }
     function $collectParameters$$($el$jscomp$4_newData$$, $config$$) {
@@ -8588,7 +8598,7 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
       $href$$ || ($href$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "href"));
       $href$$ && ($data$$.uri = pdfHighlighter.util.resolvePath($href$$, $dirUrl$jscomp$1_url$$, $resolveDocumentBase$$), $hrefHasXmlRef_pdf$$ = -1 !== $href$$.indexOf("xml="));
       var $altUrl_viewUrl$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "altUrl");
-      !$altUrl_viewUrl$$ && $href$$ && ($altUrl_viewUrl$$ = pdfHighlighter.util.resolvePath($href$$, $dirUrl$jscomp$1_url$$, $resolveDocumentBase$$));
+      $altUrl_viewUrl$$ || !$href$$ || $config$$.viewer || ($altUrl_viewUrl$$ = pdfHighlighter.util.resolvePath($href$$, $dirUrl$jscomp$1_url$$, $resolveDocumentBase$$));
       var $ind_query$$;
       "function" === typeof $config$$.querySelector ? $ind_query$$ = $config$$.querySelector : "string" === typeof $config$$.querySelector && 0 < $config$$.querySelector.length && ($ind_query$$ = function $$ind_query$$$() {
         return getQueryForSelector($config$$.querySelector, $config$$.maxQueryLen);
@@ -8606,21 +8616,27 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
       addParameter($data$$, $el$jscomp$4_newData$$, "pdf.highlightColor", null);
       addParameter($data$$, $el$jscomp$4_newData$$, "pdf.highlightMarkupOpacity", null);
       addParameter($data$$, $el$jscomp$4_newData$$, "pdf.highlightGsAlpha", null);
-      addParameter($data$$, $el$jscomp$4_newData$$, "documentServingPath", null);
+      addParameter($data$$, $el$jscomp$4_newData$$, "documentServingPath", $config$$.documentServingPath);
+      addParameter($data$$, $el$jscomp$4_newData$$, "navigation", $config$$.navigation);
       "function" === typeof $config$$.updateHighlightingParams && ($el$jscomp$4_newData$$ = $config$$.updateHighlightingParams($data$$)) && ($data$$ = $el$jscomp$4_newData$$);
       return $data$$;
     }
+    function $showDocument$$($docUrl_urlParts$$, $target$$) {
+      var $url$$ = $docUrl_urlParts$$;
+      $viewerUrl$$ && ($docUrl_urlParts$$ = $docUrl_urlParts$$.split("#"), $url$$ = $viewerUrl$$ + encodeURIComponent($docUrl_urlParts$$[0]), 1 < $docUrl_urlParts$$.length && ($url$$ += "#" + $docUrl_urlParts$$[1]));
+      $target$$ = $target$$ || $config$jscomp$0$$.target;
+      "string" === typeof $target$$ ? window.open($url$$, $target$$) : window.location = $url$$;
+    }
+    var $url$jscomp$0$$;
     if ("true" !== goog.dom.dataset.get($el$$, "hlInited")) {
       var $highlightUrlBuilder$$ = getHighlightUrlBuilder($config$jscomp$0$$), $self$$ = $el$$;
       if ("string" === typeof $config$jscomp$0$$.updateAttr) {
-        var $data$jscomp$35_url$$ = $collectParameters$$($el$$, $config$jscomp$0$$);
-        ($data$jscomp$35_url$$ = $highlightUrlBuilder$$($highlighterUrl$$, getHighlightingMethodForParams($data$jscomp$35_url$$), $data$jscomp$35_url$$)) && $el$$.setAttribute($config$jscomp$0$$.updateAttr, $data$jscomp$35_url$$);
+        var $data$jscomp$35_orig$$ = $collectParameters$$($el$$, $config$jscomp$0$$);
+        ($url$jscomp$0$$ = $highlightUrlBuilder$$($highlighterUrl$$, getHighlightingMethodForParams($data$jscomp$35_orig$$), $data$jscomp$35_orig$$)) && $el$$.setAttribute($config$jscomp$0$$.updateAttr, $url$jscomp$0$$);
       }
       if (!0 === $config$jscomp$0$$.updateHref) {
-        if ($data$jscomp$35_url$$ = $collectParameters$$($el$$, $config$jscomp$0$$), $data$jscomp$35_url$$ = $highlightUrlBuilder$$($highlighterUrl$$, getHighlightingMethodForParams($data$jscomp$35_url$$), $data$jscomp$35_url$$)) {
-          var $orig$$ = $el$$.getAttribute("href");
-          $orig$$ && goog.dom.dataset.set($el$$, "hlOrigHref", $orig$$);
-          $el$$.setAttribute("href", $data$jscomp$35_url$$);
+        if ($data$jscomp$35_orig$$ = $collectParameters$$($el$$, $config$jscomp$0$$), $url$jscomp$0$$ = $highlightUrlBuilder$$($highlighterUrl$$, getHighlightingMethodForParams($data$jscomp$35_orig$$), $data$jscomp$35_orig$$)) {
+          $config$jscomp$0$$.viewer && ($url$jscomp$0$$ = buildViewerUrl($config$jscomp$0$$.viewer, {file:$data$jscomp$35_orig$$.uri, highlightsFile:$url$jscomp$0$$})), ($data$jscomp$35_orig$$ = $el$$.getAttribute("href")) && goog.dom.dataset.set($el$$, "hlOrigHref", $data$jscomp$35_orig$$), $el$$.setAttribute("href", $url$jscomp$0$$);
         }
       } else {
         goog.events.listen($el$$, goog.events.EventType.CLICK, $clickListener$$);
@@ -8634,13 +8650,15 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
   $config$jscomp$0$$ = $config$jscomp$0$$ || {};
   var $highlighterUrl$$ = $checkStatus_hlBase$$ || $config$jscomp$0$$.highlighterUrl || window.HighlighterBase || "/";
   -1 === $highlighterUrl$$.indexOf("/", $highlighterUrl$$.length - 1) && ($highlighterUrl$$ += "/");
-  $checkStatus_hlBase$$ = !1 !== $config$jscomp$0$$.checkStatus;
-  var $resolveDocumentBase$$ = $config$jscomp$0$$.sendAbsoluteUrlsToHighlighter || $config$jscomp$0$$.resolveDocumentBase || !1, $resolveXmlBase$$ = $config$jscomp$0$$.sendAbsoluteUrlsToHighlighter || $config$jscomp$0$$.resolveXmlBase || !1, $resolveViewUrl$$ = $config$jscomp$0$$.sendAbsoluteUrlsToHighlighter || $config$jscomp$0$$.resolveViewUrl || !1, $viewerUrl$$ = $config$jscomp$0$$.viewerUrl, $target$$ = $config$jscomp$0$$.documentLinkSelector;
-  if (goog.isString($target$$)) {
-    var $links$$ = document.querySelectorAll($target$$);
+  $checkStatus_hlBase$$ = !0 === $config$jscomp$0$$.checkStatus;
+  var $resolveDocumentBase$$ = pdfHighlighter.util.getFirstBoolean([$config$jscomp$0$$.sendAbsoluteUrlsToHighlighter, $config$jscomp$0$$.resolveDocumentBase, !0]), $resolveXmlBase$$ = pdfHighlighter.util.getFirstBoolean([$config$jscomp$0$$.sendAbsoluteUrlsToHighlighter, $config$jscomp$0$$.resolveXmlBase, !0]), $resolveViewUrl$$ = pdfHighlighter.util.getFirstBoolean([$config$jscomp$0$$.sendAbsoluteUrlsToHighlighter, $config$jscomp$0$$.resolveViewUrl, !0]), $viewerUrl$$ = $config$jscomp$0$$.viewerUrl, 
+  $target$jscomp$0$$ = $config$jscomp$0$$.documentLinkSelector;
+  goog.isDefAndNotNull($target$jscomp$0$$) || ($target$jscomp$0$$ = "a[href*='.pdf'], a[href*='.PDF']");
+  if (goog.isString($target$jscomp$0$$)) {
+    var $links$$ = document.querySelectorAll($target$jscomp$0$$);
   } else {
-    if (goog.isArrayLike($target$$)) {
-      $links$$ = $target$$;
+    if (goog.isArrayLike($target$jscomp$0$$)) {
+      $links$$ = $target$jscomp$0$$;
     } else {
       return console.log("Highlighter target not defined."), !1;
     }
@@ -8715,12 +8733,55 @@ function isInputBox($element$jscomp$39_type$$) {
   $element$jscomp$39_type$$ = $element$jscomp$39_type$$.getAttribute("type").toLowerCase();
   return 0 <= ["text", "number", "email", "search", "hidden"].indexOf($element$jscomp$39_type$$);
 }
+function isPdfViewerCompatible() {
+  return !window.addEventListener || !1 !== ieVersion && 10 > ieVersion ? !1 : !0;
+}
+function getBool($value$$) {
+  return "1" == $value$$ || "true" == $value$$;
+}
+function buildViewerUrl($viewerConf$$, $highlightsUrl_params$$) {
+  var $viewUrl$$ = $viewerConf$$.url + "?";
+  $highlightsUrl_params$$.file && ($viewUrl$$ += "file=" + encodeURIComponent($highlightsUrl_params$$.file));
+  $highlightsUrl_params$$.downloadFile && ($viewUrl$$ += "&downloadFile=" + encodeURIComponent($highlightsUrl_params$$.downloadFile));
+  $highlightsUrl_params$$.highlightsFile && ($highlightsUrl_params$$ = $highlightsUrl_params$$.highlightsFile, -1 === $highlightsUrl_params$$.indexOf("includeHits=") && ($highlightsUrl_params$$ += "&includeHits=true"), $viewUrl$$ += "&highlightsFile=" + encodeURIComponent($highlightsUrl_params$$));
+  $viewerConf$$.proxyXhr && ($viewUrl$$ += "&xhrProxy=parent");
+  getBool($viewerConf$$.downBtnShow) || ($viewUrl$$ += "&downBtnShow=0");
+  getBool($viewerConf$$.downBtnText) && ($viewUrl$$ += "&downBtnText=1");
+  getBool($viewerConf$$.hideHlErrors) && ($viewUrl$$ += "&hideHlErrors=1");
+  getBool($viewerConf$$.hideHlMessages) && ($viewUrl$$ += "&hideHlMessages=1");
+  $viewerConf$$.hit && ($viewUrl$$ += "&hit=" + $viewerConf$$.hit);
+  getBool($viewerConf$$.printBtnShow) || ($viewUrl$$ += "&printBtnShow=0");
+  getBool($viewerConf$$.printBtnText) && ($viewUrl$$ += "&printBtnText=1");
+  getBool($viewerConf$$.nativePrint) && ($viewUrl$$ += "&nativePrint=1");
+  getBool($viewerConf$$.bookmarkBtnShow) && ($viewUrl$$ += "&bookmarkBtnShow=1");
+  getBool($viewerConf$$.presModeShow) && ($viewUrl$$ += "&presModeShow=1");
+  $viewerConf$$.style && ($viewUrl$$ += "&style=" + encodeURIComponent($viewerConf$$.style));
+  $viewerConf$$.script && ($viewUrl$$ += "&script=" + encodeURIComponent($viewerConf$$.script));
+  $viewerConf$$.favicon && ($viewUrl$$ += "&favicon=" + encodeURIComponent($viewerConf$$.favicon));
+  return $viewUrl$$;
+}
 pdfHighlighter.init = function $pdfHighlighter$init$($config$$, $hlBase$$) {
   return initPdfHighlighter($config$$, $hlBase$$);
 };
 goog.exportSymbol("pdfHighlighter.init", pdfHighlighter.init);
+pdfHighlighter.initOnDOMContentLoaded = function $pdfHighlighter$initOnDOMContentLoaded$($config$$, $hlBase$$) {
+  switch(document.readyState) {
+    case "complete":
+    case "loaded":
+    case "interactive":
+      initPdfHighlighter($config$$, $hlBase$$);
+      break;
+    default:
+      "function" === typeof document.addEventListener && document.addEventListener("DOMContentLoaded", function($e$$) {
+        initPdfHighlighter($config$$, $hlBase$$);
+      }, !1);
+  }
+};
+goog.exportSymbol("pdfHighlighter.initOnDOMContentLoaded", pdfHighlighter.initOnDOMContentLoaded);
 pdfHighlighter.initPdfHighlighter = initPdfHighlighter;
 goog.exportSymbol("pdfHighlighter.initPdfHighlighter", pdfHighlighter.initPdfHighlighter);
 pdfHighlighter.getQueryForSelector = getQueryForSelector;
 goog.exportSymbol("pdfHighlighter.getQueryForSelector", pdfHighlighter.getQueryForSelector);
+pdfHighlighter.isPdfViewerCompatible = isPdfViewerCompatible;
+goog.exportSymbol("pdfHighlighter.isPdfViewerCompatible", pdfHighlighter.isPdfViewerCompatible);
 }).call(window);

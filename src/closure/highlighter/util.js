@@ -66,6 +66,14 @@ function getLocation(href) {
   };
 }
 
+function getFirstBoolean(arr) {
+  for (var i = 0; i < arr.length; i++) {
+    if (goog.isBoolean(arr[i])) {
+      return arr[i];
+    }
+  }
+}
+
 /**
  * detect IE
  * returns version of IE or false, if browser is not Internet Explorer
@@ -109,7 +117,6 @@ function detectIE() {
   // other browser
   return false;
 }
-//var ieVersion = detectIE();
 
 /** @export */
 pdfHighlighter.util.detectIE = detectIE;
@@ -119,4 +126,7 @@ pdfHighlighter.util.resolvePath = resolvePath;
 
 /** @export */
 pdfHighlighter.util.findData = findData;
+
+/** @export */
+pdfHighlighter.util.getFirstBoolean = getFirstBoolean;
 

@@ -41,14 +41,18 @@ var initPdfHighlighter = function (config, hlBase) {
   if (highlighterUrl.indexOf('/', highlighterUrl.length - 1) === -1)
     highlighterUrl += '/';
 
-  var checkStatus = config['checkStatus'] !== false;
-  var resolveDocumentBase = config['sendAbsoluteUrlsToHighlighter'] || config['resolveDocumentBase'] || false;
-  var resolveXmlBase = config['sendAbsoluteUrlsToHighlighter'] || config['resolveXmlBase'] || false;
-  var resolveViewUrl = config['sendAbsoluteUrlsToHighlighter'] || config['resolveViewUrl'] || false;
+  var checkStatus = config['checkStatus'] === true;
+  var resolveDocumentBase = pdfHighlighter.util.getFirstBoolean([config['sendAbsoluteUrlsToHighlighter'], config['resolveDocumentBase'], true]);
+  var resolveXmlBase = pdfHighlighter.util.getFirstBoolean([config['sendAbsoluteUrlsToHighlighter'], config['resolveXmlBase'], true]);
+  var resolveViewUrl = pdfHighlighter.util.getFirstBoolean([config['sendAbsoluteUrlsToHighlighter'], config['resolveViewUrl'], true]);
 
   var viewerUrl = config['viewerUrl'];
   var encodeHashForViewer = false;
   var target = config['documentLinkSelector'];
+
+  if (!goog.isDefAndNotNull(target)) {
+    target = "a[href*='.pdf'], a[href*='.PDF']";
+  }
 
   var links;
   if (goog.isString(target)) {
@@ -122,6 +126,12 @@ var initPdfHighlighter = function (config, hlBase) {
       var data = collectParameters(el, config);
       var url = highlightUrlBuilder(highlighterUrl, getHighlightingMethodForParams(data), data);
       if (url) {
+        if (config['viewer']) {
+          url = buildViewerUrl(config['viewer'], {
+            'file': data['uri'],
+            'highlightsFile': url
+          });
+        }
         var orig = el.getAttribute('href');
         if (orig)
           goog.dom.dataset.set(el, 'hlOrigHref', orig);
@@ -158,11 +168,24 @@ var initPdfHighlighter = function (config, hlBase) {
         return;
       e.preventDefault();
 
-      var request = new goog.net.XhrIo();
-      request.headers.set('content-type', 'application/json');
-      if (apiToken) {
-        request.headers.set('x-highlighter-api-token', apiToken);
+      var target = e.target.getAttribute('target');
+
+      if (config['viewer']) {
+        var viewUrl = buildViewerUrl(config['viewer'], {
+          'file': data['uri'],
+          'highlightsFile': postUrl + '?' + dataEncoded
+        });
+        showDocument(viewUrl, target);
+        return;
       }
+
+      var request = new goog.net.XhrIo();
+      request.headers.set('accept', 'application/json');
+      request.headers.set('content-type', 'application/x-www-form-urlencoded');
+      if (apiToken) {
+        request.headers.set('x-api-token', apiToken);
+      }
+      else request.headers.set('x-api-token', 'demo'); // fixme delete
       goog.events.listen(request, 'complete', function () {
         if (request.isSuccess()) {
           var res = request.getResponseJson();
@@ -172,7 +195,7 @@ var initPdfHighlighter = function (config, hlBase) {
             }
           }
           if (res['success'] === true) {
-            showDocument(res['documentUrl'], res);
+            showDocument(res['documentUrl'], target);
           }
           else {
             onError();
@@ -212,7 +235,7 @@ var initPdfHighlighter = function (config, hlBase) {
       }
 
       var altUrl = goog.dom.dataset.get(el, 'altUrl');
-      if (!altUrl && href)
+      if (!altUrl && href && !config['viewer'])
         altUrl = pdfHighlighter.util.resolvePath(href, dirUrl, resolveDocumentBase);
 
 
@@ -276,7 +299,8 @@ var initPdfHighlighter = function (config, hlBase) {
       addParameter(data, el, 'pdf.highlightColor', null);
       addParameter(data, el, 'pdf.highlightMarkupOpacity', null);
       addParameter(data, el, 'pdf.highlightGsAlpha', null);
-      addParameter(data, el, 'documentServingPath', null);
+      addParameter(data, el, 'documentServingPath', config['documentServingPath']);
+      addParameter(data, el, 'navigation', config['navigation']);
 
       // giving a chance to client to amend highlighting parameters
       if (typeof config['updateHighlightingParams'] === 'function') {
@@ -289,7 +313,7 @@ var initPdfHighlighter = function (config, hlBase) {
       return data;
     }
 
-    function showDocument(docUrl, result) {
+    function showDocument(docUrl, target) {
 
       var url = docUrl;
       if (viewerUrl) {
@@ -304,8 +328,15 @@ var initPdfHighlighter = function (config, hlBase) {
         }
       }
 
-      // TODO: add support for: 1) target element, 2) custom handler
-      window.location = url;
+      // TODO: custom handler?
+
+      target = target || config['target'];
+      if (typeof target === 'string') {
+        window.open(url, target);
+      }
+      else {
+        window.location = url;
+      }
     }
 
     function onError() {
@@ -422,15 +453,101 @@ function isInputBox(element) {
   return inputTypes.indexOf(type) >= 0;
 }
 
+function isPdfViewerCompatible() {
+  if (!window.addEventListener) { // require a modern browser
+    return false;
+  }
+  else if (ieVersion !== false && ieVersion < 10) {
+    return false;
+  }
+  return true;
+}
+
+function getBool(value) {
+  return value == '1' || value == 'true'; // note: on purpose not using ===
+}
+
+function buildViewerUrl(viewerConf, params) {
+  var viewUrl = viewerConf['url'] + '?';
+
+  if (params['file'])
+    viewUrl += 'file=' + encodeURIComponent(params['file']);
+  if (params['downloadFile'])
+    viewUrl += '&downloadFile=' + encodeURIComponent(params['downloadFile']);
+
+  if (params['highlightsFile']) {
+    var highlightsUrl = params['highlightsFile'];
+    // If viewer URL is built with highlighting URL, we extend with 'includeHits' parameter so we get matches
+    // JSON right away instead being redirected to viewer.
+    if (highlightsUrl.indexOf('includeHits=') === -1)
+      highlightsUrl += '&includeHits=true';
+    viewUrl += '&highlightsFile=' + encodeURIComponent(highlightsUrl);
+  }
+
+  if (viewerConf['proxyXhr']) {
+    // tell viewer to proxy network requests (for PDF document and highlighting) using messaging via this window
+    // in order to avoid CORS issues when the viewer is hosted on an external CDN
+    viewUrl += '&xhrProxy=parent';
+  }
+
+  if (!getBool(viewerConf['downBtnShow']))
+    viewUrl += '&downBtnShow=0';
+  if (getBool(viewerConf['downBtnText']))
+    viewUrl += '&downBtnText=1';
+  if (getBool(viewerConf['hideHlErrors']))
+    viewUrl += '&hideHlErrors=1';
+  if (getBool(viewerConf['hideHlMessages']))
+    viewUrl += '&hideHlMessages=1';
+  if (viewerConf['hit'])
+    viewUrl += '&hit=' + viewerConf['hit'];
+  if (!getBool(viewerConf['printBtnShow']))
+    viewUrl += '&printBtnShow=0';
+  if (getBool(viewerConf['printBtnText']))
+    viewUrl += '&printBtnText=1';
+  if (getBool(viewerConf['nativePrint']))
+    viewUrl += '&nativePrint=1';
+  if (getBool(viewerConf['bookmarkBtnShow']))
+    viewUrl += '&bookmarkBtnShow=1';
+  if (getBool(viewerConf['presModeShow']))
+    viewUrl += '&presModeShow=1';
+  if (viewerConf['style'])
+    viewUrl += '&style=' + encodeURIComponent(viewerConf['style']);
+  if (viewerConf['script'])
+    viewUrl += '&script=' + encodeURIComponent(viewerConf['script']);
+  if (viewerConf['favicon'])
+    viewUrl += '&favicon=' + encodeURIComponent(viewerConf['favicon']);
+
+  return viewUrl;
+}
 
 /** @export */
 pdfHighlighter.init = function (config, hlBase) {
   return initPdfHighlighter(config, hlBase);
 };
 
+/** @export */
+pdfHighlighter.initOnDOMContentLoaded = function (config, hlBase) {
+  // Wait for DOM content to initialize
+  switch(document.readyState) {
+    case 'complete':
+    case 'loaded':
+    case 'interactive':
+      initPdfHighlighter(config, hlBase);
+      break;
+    default:
+      if (typeof document.addEventListener === 'function') {
+        document.addEventListener('DOMContentLoaded', function(e) {
+          initPdfHighlighter(config, hlBase);
+        }, false);
+      }
+  }
+};
 
 /** @export */
 pdfHighlighter.initPdfHighlighter = initPdfHighlighter;
 
 /** @export */
 pdfHighlighter.getQueryForSelector = getQueryForSelector;
+
+/** @export */
+pdfHighlighter.isPdfViewerCompatible = isPdfViewerCompatible;
