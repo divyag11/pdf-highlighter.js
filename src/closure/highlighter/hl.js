@@ -49,19 +49,21 @@ var initPdfHighlighter = function (config, hlBase) {
   var viewerUrl = config['viewerUrl'];
   var encodeHashForViewer = false;
   var target = config['documentLinkSelector'];
+  var apiToken;
+  var attachDisabled = config['attach'] === false;
 
-  if (!goog.isDefAndNotNull(target)) {
+  if (!goog.isDefAndNotNull(target) && !attachDisabled) {
     target = "a[href*='.pdf'], a[href*='.PDF']";
   }
 
-  var links;
+  var links = [];
   if (goog.isString(target)) {
     links = document.querySelectorAll(target);
   }
   else if (goog.isArrayLike(target)) {
     links = target;
   }
-  else {
+  else if (!attachDisabled) {
     console.log('Highlighter target not defined.');
     return false;
   }
@@ -70,32 +72,39 @@ var initPdfHighlighter = function (config, hlBase) {
     console.log('Attaching highlighter to links: ' + links.length);
   }
 
-  if (checkStatus && links.length > 0) {
+  if (checkStatus && (links.length > 0 || attachDisabled)) {
     var statusReqData = config['statusCheckParams'];
     checkServerStatus(highlighterUrl, statusReqData,
       function onSuccess(res) {
+        cmdObject['serverStatus'] = res;
         if (res['success'] && !res['disabled']) {
           var endpoint = res['endpoint'] || highlighterUrl;
-          attachHighlighterForAll(links, endpoint, res['apiToken']);
+          if (res['apiToken'])
+            apiToken = res['apiToken'];
+          attachHighlighterForAll(links, endpoint);
         }
         else {
-          attachHighlighterForAll(links, undefined, undefined);
+          attachHighlighterForAll(links, undefined);
           console.log('PDF highlighting disabled by server.');
         }
       },
       function onError() {
+        cmdObject['serverStatus'] = {'success': false};
         // fixme pass error to config fn listener?
         // in case of error, continue with highlighting disabled (as click may be handled by an external handler to e.g. open viewer)
-        attachHighlighterForAll(links, undefined, undefined);
+        attachHighlighterForAll(links, undefined);
         console.log('PDF highlighting disabled because status check failed.');
       });
   }
   else {
-    attachHighlighterForAll(links, highlighterUrl, undefined);
+    attachHighlighterForAll(links, highlighterUrl);
   }
 
 
-  function attachHighlighterForAll(links, highlighterUrl, apiToken) {
+  function attachHighlighterForAll(links, highlighterUrl) {
+    if (attachDisabled) {
+      return;
+    }
     goog.array.forEach(links, function (item, index, arr) {
       var r = attachHighlighter(item, highlighterUrl, apiToken);
       if (goog.isObject(r)) {
@@ -104,7 +113,11 @@ var initPdfHighlighter = function (config, hlBase) {
     });
   }
 
-  function attachHighlighter(el, highlighterUrl, apiToken) {
+  cmdObject['attach'] = function (el) {
+    attachHighlighter(el, highlighterUrl);
+  };
+
+  function attachHighlighter(el, highlighterUrl) {
 
     if (goog.dom.dataset.get(el, 'hlInited') === 'true') {
       return;
@@ -175,7 +188,7 @@ var initPdfHighlighter = function (config, hlBase) {
           'file': data['uri'],
           'highlightsFile': postUrl + '?' + dataEncoded
         });
-        showDocument(viewUrl, target);
+        showDocument(viewUrl, viewerUrl, encodeHashForViewer, target || config['target']);
         return;
       }
 
@@ -195,7 +208,7 @@ var initPdfHighlighter = function (config, hlBase) {
             }
           }
           if (res['success'] === true) {
-            showDocument(res['documentUrl'], target);
+            showDocument(res['documentUrl'], viewerUrl, encodeHashForViewer, target || config['target']);
           }
           else {
             onError();
@@ -313,32 +326,6 @@ var initPdfHighlighter = function (config, hlBase) {
       return data;
     }
 
-    function showDocument(docUrl, target) {
-
-      var url = docUrl;
-      if (viewerUrl) {
-        if (!encodeHashForViewer) {
-          var urlParts = docUrl.split('#');
-          url = viewerUrl + encodeURIComponent(urlParts[0]);
-          if (urlParts.length > 1)
-            url += '#' + urlParts[1];
-        }
-        else {
-          url = viewerUrl + encodeURIComponent(docUrl);
-        }
-      }
-
-      // TODO: custom handler?
-
-      target = target || config['target'];
-      if (typeof target === 'string') {
-        window.open(url, target);
-      }
-      else {
-        window.location = url;
-      }
-    }
-
     function onError() {
       //window.location = altUrl;
       // fixme improve error handling!
@@ -353,6 +340,31 @@ var initPdfHighlighter = function (config, hlBase) {
 
   return cmdObject;
 };
+
+function showDocument(docUrl, viewerUrl, encodeHashForViewer, target) {
+
+  var url = docUrl;
+  if (viewerUrl) {
+    if (!encodeHashForViewer) {
+      var urlParts = docUrl.split('#');
+      url = viewerUrl + encodeURIComponent(urlParts[0]);
+      if (urlParts.length > 1)
+        url += '#' + urlParts[1];
+    }
+    else {
+      url = viewerUrl + encodeURIComponent(docUrl);
+    }
+  }
+
+  // TODO: custom handler?
+
+  if (typeof target === 'string') {
+    window.open(url, target);
+  }
+  else {
+    window.location = url;
+  }
+}
 
 function checkServerStatus(highlighterUrl, statusReqData, onSuccess, onError) {
   var dataEncoded = statusReqData ? goog.Uri.QueryData.createFromMap(statusReqData).toString() : undefined;
