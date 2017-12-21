@@ -428,9 +428,27 @@ function getHighlightingMethodForParams(params) {
 }
 
 function getQueryForSelector(querySelector, maxQueryLen) {
-
   // todo add support for getting query from URL parameter?
+  if (querySelector) {
+    // split selector by comma and search one by one for prioritized handling
+    try {
+      var sels = querySelector.split(',');
+      for (var i = 0; i < sels.length; i++) {
+        var sel = sels[i];
+        if (sel.trim().length === 0)
+          continue;
+        var q = _getQueryForSelector(sel, maxQueryLen);
+        if (q)
+          return q;
+      }
+    }
+    catch(e) { // in case of any error fall back to search without splitting
+      return _getQueryForSelector(querySelector, maxQueryLen);
+    }
+  }
+}
 
+function _getQueryForSelector(querySelector, maxQueryLen) {
   var query;
   var elements = document.querySelectorAll(querySelector);
   // get the first found element from which we obtained text
