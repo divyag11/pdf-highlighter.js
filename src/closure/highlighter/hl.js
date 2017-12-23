@@ -8,6 +8,7 @@ goog.require('goog.dom');
 goog.require('goog.dom.dataset');
 goog.require('goog.events');
 goog.require('goog.net.XhrIo');
+goog.require('goog.object');
 goog.require('pdfHighlighter.util');
 
 var ieVersion = pdfHighlighter.util.detectIE();
@@ -126,29 +127,45 @@ var initPdfHighlighter = function (config, hlBase) {
     var highlightUrlBuilder = getHighlightUrlBuilder(config);
     var self = el;
     var addedListener;
+    var inlineViewer = el.classList.contains('inlinePdfViewer');
 
     if (typeof config['updateAttr'] === 'string') {
       var data = collectParameters(el, config);
       var url = highlightUrlBuilder(highlighterUrl, getHighlightingMethodForParams(data), data);
+      if (config['viewer']) {
+        url = buildViewerUrl(config['viewer'], {
+          'file': data['uri'],
+          'highlightsFile': url
+        });
+      }
       if (url)
         el.setAttribute(config['updateAttr'], url);
     }
-
-    // if updateHref is enabled, update href and exit
-    if (config['updateHref'] === true) {
+    else if (config['updateHref'] === true || inlineViewer) {
       var data = collectParameters(el, config);
       var url = highlightUrlBuilder(highlighterUrl, getHighlightingMethodForParams(data), data);
+      if (config['viewer']) {
+        url = buildViewerUrl(config['viewer'], {
+          'file': data['uri'],
+          'highlightsFile': url
+        });
+      }
       if (url) {
-        if (config['viewer']) {
-          url = buildViewerUrl(config['viewer'], {
-            'file': data['uri'],
-            'highlightsFile': url
-          });
+        if (inlineViewer) {
+          var iframeAttrs = goog.object.clone(config['inlinePdfViewerAttr'] || {});
+          goog.object.setIfUndefined(iframeAttrs, 'class', 'inlinePdfViewerIframe');
+          goog.object.setIfUndefined(iframeAttrs, 'frameborder', 0);
+          goog.object.setIfUndefined(iframeAttrs, 'allowfullscreen', true);
+          iframeAttrs['src'] = url;
+          var iframeNode = goog.dom.createDom('iframe', iframeAttrs);
+          goog.dom.replaceNode(iframeNode, el);
         }
-        var orig = el.getAttribute('href');
-        if (orig)
-          goog.dom.dataset.set(el, 'hlOrigHref', orig);
-        el.setAttribute('href', url);
+        else { // update link href
+          var orig = el.getAttribute('href');
+          if (orig)
+            goog.dom.dataset.set(el, 'hlOrigHref', orig);
+          el.setAttribute('href', url);
+        }
       }
     }
     else { // otherwise listen for a click...
@@ -514,9 +531,12 @@ function buildViewerUrl(viewerConf, params) {
     viewUrl += '&highlightsFile=' + encodeURIComponent(highlightsUrl);
   }
 
-  if (viewerConf['proxyXhr']) {
-    // tell viewer to proxy network requests (for PDF document and highlighting) using messaging via this window
-    // in order to avoid CORS issues when the viewer is hosted on an external CDN
+  // The proxyXhr flag tell viewer to proxy network requests (for PDF document and highlighting) using messaging via
+  // this window in order to avoid CORS issues when the viewer is hosted on an external CDN
+  if (typeof viewerConf['proxyXhr'] === 'string') {
+    viewUrl += '&xhrProxy=' + viewerConf['proxyXhr'];
+  }
+  else if (viewerConf['proxyXhr'] === true) {
     viewUrl += '&xhrProxy=parent';
   }
 
