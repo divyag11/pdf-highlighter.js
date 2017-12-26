@@ -115,7 +115,10 @@ var initPdfHighlighter = function (config, hlBase) {
   }
 
   cmdObject['attach'] = function (el) {
-    attachHighlighter(el, highlighterUrl);
+    var r = attachHighlighter(el, highlighterUrl);
+    if (goog.isObject(r)) {
+      cmdObject.elementListeners.push(r);
+    }
   };
 
   function attachHighlighter(el, highlighterUrl) {
