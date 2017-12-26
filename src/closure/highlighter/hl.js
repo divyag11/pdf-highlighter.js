@@ -50,6 +50,7 @@ var initPdfHighlighter = function (config, hlBase) {
   var viewerUrl = config['viewerUrl'];
   var encodeHashForViewer = false;
   var target = config['documentLinkSelector'];
+  var accessParams;
   var apiToken;
   var attachDisabled = config['attach'] === false;
 
@@ -73,15 +74,17 @@ var initPdfHighlighter = function (config, hlBase) {
     console.log('Attaching highlighter to links: ' + links.length);
   }
 
+  accessParams = config['accessParams'];
   if (checkStatus && (links.length > 0 || attachDisabled)) {
-    var statusReqData = config['statusCheckParams'];
-    checkServerStatus(highlighterUrl, statusReqData,
+    checkServerStatus(highlighterUrl, accessParams,
       function onSuccess(res) {
         cmdObject['serverStatus'] = res;
         if (res['success'] && !res['disabled']) {
           var endpoint = res['endpoint'] || highlighterUrl;
-          if (res['apiToken'])
+          if (res['apiToken']) {
             apiToken = res['apiToken'];
+            accessParams = undefined;
+          }
           attachHighlighterForAll(links, endpoint);
         }
         else {
@@ -181,6 +184,9 @@ var initPdfHighlighter = function (config, hlBase) {
       var data = collectParameters(self, config);
       var method = getHighlightingMethodForParams(data);
       var postUrl = highlightUrlBuilder(highlighterUrl, method); // building url without data as we'll use POST method
+      if (accessParams) {
+        for(var k in accessParams) data[k] = accessParams[k];
+      }
       var dataEncoded = goog.Uri.QueryData.createFromMap(data).toString();
 
       if (typeof config['onHighlightingLinkClick'] === 'function') {
@@ -190,6 +196,7 @@ var initPdfHighlighter = function (config, hlBase) {
         ctx['endpoint'] = postUrl;
         ctx['params'] = data;
         ctx['paramsEncoded'] = dataEncoded;
+        ctx['accessParams'] = accessParams;
         ctx['apiToken'] = apiToken;
         if (config['onHighlightingLinkClick'](self, ctx, e) === false) {
           return; // if callback returned false, ignoring the click
