@@ -139,7 +139,7 @@ var initPdfHighlighter = function (config, hlBase) {
       var data = collectParameters(el, config);
       var url = highlightUrlBuilder(highlighterUrl, getHighlightingMethodForParams(data), data);
       if (config['viewer']) {
-        url = buildViewerUrl(config['viewer'], {
+        url = pdfHighlighter.util.buildViewerUrl(config['viewer'], {
           'file': data['uri'],
           'highlightsFile': url
         });
@@ -151,7 +151,7 @@ var initPdfHighlighter = function (config, hlBase) {
       var data = collectParameters(el, config);
       var url = highlightUrlBuilder(highlighterUrl, getHighlightingMethodForParams(data), data);
       if (config['viewer']) {
-        url = buildViewerUrl(config['viewer'], {
+        url = pdfHighlighter.util.buildViewerUrl(config['viewer'], {
           'file': data['uri'],
           'highlightsFile': url
         });
@@ -211,7 +211,7 @@ var initPdfHighlighter = function (config, hlBase) {
       var target = e.target.getAttribute('target');
 
       if (config['viewer']) {
-        var viewUrl = buildViewerUrl(config['viewer'], {
+        var viewUrl = pdfHighlighter.util.buildViewerUrl(config['viewer'], {
           'file': data['uri'],
           'highlightsFile': postUrl + '?' + dataEncoded
         });
@@ -520,65 +520,6 @@ function isPdfViewerCompatible() {
   return true;
 }
 
-function getBool(value) {
-  return value == '1' || value == 'true'; // note: on purpose not using ===
-}
-
-function buildViewerUrl(viewerConf, params) {
-  var viewUrl = viewerConf['url'] + '?';
-
-  if (params['file'])
-    viewUrl += 'file=' + encodeURIComponent(params['file']);
-  if (params['downloadFile'])
-    viewUrl += '&downloadFile=' + encodeURIComponent(params['downloadFile']);
-
-  if (params['highlightsFile']) {
-    var highlightsUrl = params['highlightsFile'];
-    // If viewer URL is built with highlighting URL, we extend with 'includeHits' parameter so we get matches
-    // JSON right away instead being redirected to viewer.
-    if (highlightsUrl.indexOf('includeHits=') === -1)
-      highlightsUrl += '&includeHits=true';
-    viewUrl += '&highlightsFile=' + encodeURIComponent(highlightsUrl);
-  }
-
-  // The proxyXhr flag tell viewer to proxy network requests (for PDF document and highlighting) using messaging via
-  // this window in order to avoid CORS issues when the viewer is hosted on an external CDN
-  if (typeof viewerConf['proxyXhr'] === 'string') {
-    viewUrl += '&xhrProxy=' + viewerConf['proxyXhr'];
-  }
-  else if (viewerConf['proxyXhr'] === true) {
-    viewUrl += '&xhrProxy=parent';
-  }
-
-  if (!getBool(viewerConf['downBtnShow']))
-    viewUrl += '&downBtnShow=0';
-  if (getBool(viewerConf['downBtnText']))
-    viewUrl += '&downBtnText=1';
-  if (getBool(viewerConf['hideHlErrors']))
-    viewUrl += '&hideHlErrors=1';
-  if (getBool(viewerConf['hideHlMessages']))
-    viewUrl += '&hideHlMessages=1';
-  if (viewerConf['hit'])
-    viewUrl += '&hit=' + viewerConf['hit'];
-  if (!getBool(viewerConf['printBtnShow']))
-    viewUrl += '&printBtnShow=0';
-  if (getBool(viewerConf['printBtnText']))
-    viewUrl += '&printBtnText=1';
-  if (getBool(viewerConf['nativePrint']))
-    viewUrl += '&nativePrint=1';
-  if (getBool(viewerConf['bookmarkBtnShow']))
-    viewUrl += '&bookmarkBtnShow=1';
-  if (getBool(viewerConf['presModeShow']))
-    viewUrl += '&presModeShow=1';
-  if (viewerConf['style'])
-    viewUrl += '&style=' + encodeURIComponent(viewerConf['style']);
-  if (viewerConf['script'])
-    viewUrl += '&script=' + encodeURIComponent(viewerConf['script']);
-  if (viewerConf['favicon'])
-    viewUrl += '&favicon=' + encodeURIComponent(viewerConf['favicon']);
-
-  return viewUrl;
-}
 
 /** @export */
 pdfHighlighter.init = function (config, hlBase) {

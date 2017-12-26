@@ -74,6 +74,67 @@ function getFirstBoolean(arr) {
   }
 }
 
+function getBool(value) {
+  return value == '1' || value == 'true'; // note: on purpose not using ===
+}
+
+function buildViewerUrl(viewerConf, params) {
+  var viewUrl = viewerConf['url'] + '?';
+
+  if (params['file'])
+    viewUrl += 'file=' + encodeURIComponent(params['file']);
+  if (params['downloadFile'])
+    viewUrl += '&downloadFile=' + encodeURIComponent(params['downloadFile']);
+
+  if (params['highlightsFile']) {
+    var highlightsUrl = params['highlightsFile'];
+    // If viewer URL is built with highlighting URL, we extend with 'includeHits' parameter so we get matches
+    // JSON right away instead being redirected to viewer.
+    if (highlightsUrl.indexOf('includeHits=') === -1)
+      highlightsUrl += '&includeHits=true';
+    viewUrl += '&highlightsFile=' + encodeURIComponent(highlightsUrl);
+  }
+
+  // The proxyXhr flag tell viewer to proxy network requests (for PDF document and highlighting) using messaging via
+  // this window in order to avoid CORS issues when the viewer is hosted on an external CDN
+  if (typeof viewerConf['proxyXhr'] === 'string') {
+    viewUrl += '&xhrProxy=' + viewerConf['proxyXhr'];
+  }
+  else if (viewerConf['proxyXhr'] === true) {
+    viewUrl += '&xhrProxy=parent';
+  }
+
+  if (('downBtnShow' in viewerConf) && !getBool(viewerConf['downBtnShow']))
+    viewUrl += '&downBtnShow=0';
+  if (('downBtnText' in viewerConf) && getBool(viewerConf['downBtnText']))
+    viewUrl += '&downBtnText=1';
+  if (('hideHlErrors' in viewerConf) && getBool(viewerConf['hideHlErrors']))
+    viewUrl += '&hideHlErrors=1';
+  if (('hideHlMessages' in viewerConf) && getBool(viewerConf['hideHlMessages']))
+    viewUrl += '&hideHlMessages=1';
+  if (viewerConf['hit'])
+    viewUrl += '&hit=' + viewerConf['hit'];
+  if (('printBtnShow' in viewerConf) && !getBool(viewerConf['printBtnShow']))
+    viewUrl += '&printBtnShow=0';
+  if (('printBtnText' in viewerConf) && getBool(viewerConf['printBtnText']))
+    viewUrl += '&printBtnText=1';
+  if (('nativePrint' in viewerConf) && getBool(viewerConf['nativePrint']))
+    viewUrl += '&nativePrint=1';
+  if (('bookmarkBtnShow' in viewerConf) && getBool(viewerConf['bookmarkBtnShow']))
+    viewUrl += '&bookmarkBtnShow=1';
+  if (('presModeShow' in viewerConf) && getBool(viewerConf['presModeShow']))
+    viewUrl += '&presModeShow=1';
+  if (viewerConf['style'])
+    viewUrl += '&style=' + encodeURIComponent(viewerConf['style']);
+  if (viewerConf['script'])
+    viewUrl += '&script=' + encodeURIComponent(viewerConf['script']);
+  if (viewerConf['favicon'])
+    viewUrl += '&favicon=' + encodeURIComponent(viewerConf['favicon']);
+
+  return viewUrl;
+}
+
+
 /**
  * detect IE
  * returns version of IE or false, if browser is not Internet Explorer
@@ -129,4 +190,7 @@ pdfHighlighter.util.findData = findData;
 
 /** @export */
 pdfHighlighter.util.getFirstBoolean = getFirstBoolean;
+
+/** @export */
+pdfHighlighter.util.buildViewerUrl = buildViewerUrl;
 
