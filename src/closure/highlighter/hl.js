@@ -47,8 +47,6 @@ var initPdfHighlighter = function (config, hlBase) {
   var resolveXmlBase = pdfHighlighter.util.getFirstBoolean([config['sendAbsoluteUrlsToHighlighter'], config['resolveXmlBase'], true]);
   var resolveViewUrl = pdfHighlighter.util.getFirstBoolean([config['sendAbsoluteUrlsToHighlighter'], config['resolveViewUrl'], true]);
 
-  var viewerUrl = config['viewerUrl'];
-  var encodeHashForViewer = false;
   var target = config['documentLinkSelector'];
   var accessParams;
   var apiToken;
@@ -215,7 +213,7 @@ var initPdfHighlighter = function (config, hlBase) {
           'file': data['uri'],
           'highlightsFile': postUrl + '?' + dataEncoded
         });
-        showDocument(viewUrl, viewerUrl, encodeHashForViewer, target || config['target']);
+        showDocument(viewUrl, target || config['target']);
         return;
       }
 
@@ -235,7 +233,7 @@ var initPdfHighlighter = function (config, hlBase) {
             }
           }
           if (res['success'] === true) {
-            showDocument(res['documentUrl'], viewerUrl, encodeHashForViewer, target || config['target']);
+            showDocument(res['documentUrl'], target || config['target']);
           }
           else {
             onError();
@@ -368,23 +366,9 @@ var initPdfHighlighter = function (config, hlBase) {
   return cmdObject;
 };
 
-function showDocument(docUrl, viewerUrl, encodeHashForViewer, target) {
-
+function showDocument(docUrl, target) {
   var url = docUrl;
-  if (viewerUrl) {
-    if (!encodeHashForViewer) {
-      var urlParts = docUrl.split('#');
-      url = viewerUrl + encodeURIComponent(urlParts[0]);
-      if (urlParts.length > 1)
-        url += '#' + urlParts[1];
-    }
-    else {
-      url = viewerUrl + encodeURIComponent(docUrl);
-    }
-  }
-
   // TODO: custom handler?
-
   if (typeof target === 'string') {
     window.open(url, target);
   }
