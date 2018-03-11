@@ -329,6 +329,39 @@ var initPdfHighlighter = function (config, hlBase) {
       if (viewUrl)
         data['viewUrl'] = pdfHighlighter.util.resolvePath(viewUrl, dirUrl, resolveViewUrl);
 
+      if (config['overridePdfJS']) {
+        var fileUri = data['uri'];
+        if (fileUri) {
+          var qmInd = fileUri.indexOf('?');
+          var fileInd = fileUri.indexOf('file=');
+          var extInd = fileUri.toLowerCase().indexOf('.pdf');
+          var fragInd = fileUri.indexOf('#');
+          if (qmInd !== -1 && extInd !== -1 && qmInd < fileInd && fileInd < extInd) {
+            var fragment;
+            if (fragInd !== -1) {
+              fragment = fileUri.substring(fragInd + 1);
+              if (fragment)
+                data['viewerUrlFragment'] = fragment;
+              fileUri = fileUri.substring(0, fragInd);
+            }
+            var params = pdfHighlighter.util.parseQueryString(fileUri.substring(qmInd + 1));
+            //console.log('detected pdfjs!', params);
+            if (goog.isDefAndNotNull(params['file'])) {
+              data['uri'] = params['file'];
+            }
+            else {
+              // no idea what we're looking at so just skip the link
+              data['uri'] = undefined; // disables hl for this url
+            }
+          }
+        }
+      }
+
+      // fix uri without protocol as highlighter has no context
+      if (goog.isDefAndNotNull(data['uri']) && data['uri'].startsWith('//')) {
+        data['uri'] = location.protocol + data['uri'];
+      }
+
       addParameter(data, el, 'removePagesWithoutMatches', config['removePagesWithoutMatches']);
       addParameter(data, el, 'addNavigation', config['addNavigation']);
       addParameter(data, el, 'openFirstHlPage', config['openFirstHlPage']);

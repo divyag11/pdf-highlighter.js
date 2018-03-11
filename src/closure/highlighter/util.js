@@ -66,6 +66,19 @@ function getLocation(href) {
   };
 }
 
+// Borrowed from PDF.js
+function parseQueryString(query) {
+  var parts = query.split('&');
+  var params = {};
+  for (var i = 0, ii = parts.length; i < ii; ++i) {
+    var param = parts[i].split('=');
+    var key = param[0].toLowerCase();
+    var value = param.length > 1 ? param[1] : null;
+    params[decodeURIComponent(key)] = decodeURIComponent(value);
+  }
+  return params;
+}
+
 function getFirstBoolean(arr) {
   for (var i = 0; i < arr.length; i++) {
     if (goog.isBoolean(arr[i])) {
@@ -209,6 +222,9 @@ pdfHighlighter.util.resolvePath = resolvePath;
 
 /** @export */
 pdfHighlighter.util.findData = findData;
+
+/** @export */
+pdfHighlighter.util.parseQueryString = parseQueryString;
 
 /** @export */
 pdfHighlighter.util.getFirstBoolean = getFirstBoolean;
