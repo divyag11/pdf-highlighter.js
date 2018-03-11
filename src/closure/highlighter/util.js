@@ -95,6 +95,28 @@ function buildViewerUrl(viewerConf, params) {
     viewUrl += '&highlightsFile=' + encodeURIComponent(highlightsUrl);
   }
 
+  var powerSearch = !('powerSearch' in viewerConf) || getBool(viewerConf['powerSearch']);
+  if (powerSearch) {
+    // options needed by viewer search bar
+    if (params['language']) {
+      viewUrl += '&lang=' + encodeURIComponent(params['language']);
+    }
+    if (params['query']) {
+      viewUrl += '&q=' + encodeURIComponent(params['query']);
+    }
+    if (params['highlighterUrl']) {
+      viewUrl += '&hlSrv=' + encodeURIComponent(params['highlighterUrl']);
+    }
+    if (params['hlExtra']) {
+      viewUrl += '&hlExtra=' + encodeURIComponent(params['hlExtra']);
+    }
+  }
+  else {
+    viewUrl += '&powerSearch=0';
+  }
+  if (('hitNavLoc' in viewerConf) && viewerConf['hitNavLoc'] !== 1)
+    viewUrl += '&hitNavLoc=' + viewerConf['hitNavLoc'];
+
   // The proxyXhr flag tell viewer to proxy network requests (for PDF document and highlighting) using messaging via
   // this window in order to avoid CORS issues when the viewer is hosted on an external CDN
   if (typeof viewerConf['proxyXhr'] === 'string') {
