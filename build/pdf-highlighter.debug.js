@@ -44,6 +44,20 @@ $jscomp.findInternal = function $$jscomp$findInternal$($array$$, $callback$$, $t
   }
   return {i:-1, v:void 0};
 };
+$jscomp.polyfill("String.prototype.startsWith", function($orig$$) {
+  return $orig$$ ? $orig$$ : function($searchString$$, $i$jscomp$6_opt_position$$) {
+    var $string$$ = $jscomp.checkStringArgs(this, $searchString$$, "startsWith");
+    $searchString$$ += "";
+    var $strLen$$ = $string$$.length, $searchLen$$ = $searchString$$.length;
+    $i$jscomp$6_opt_position$$ = Math.max(0, Math.min($i$jscomp$6_opt_position$$ | 0, $string$$.length));
+    for (var $j$$ = 0; $j$$ < $searchLen$$ && $i$jscomp$6_opt_position$$ < $strLen$$;) {
+      if ($string$$[$i$jscomp$6_opt_position$$++] != $searchString$$[$j$$++]) {
+        return !1;
+      }
+    }
+    return $j$$ >= $searchLen$$;
+  };
+}, "es6", "es3");
 var COMPILED = !0, goog = goog || {};
 goog.global = this;
 goog.isDef = function $goog$isDef$($val$$) {
@@ -8508,6 +8522,15 @@ function resolve($resolved_url_url$$, $base_url$$) {
 function getLocation($href$jscomp$1_match$$) {
   return ($href$jscomp$1_match$$ = $href$jscomp$1_match$$.match(/^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/)) && {protocol:$href$jscomp$1_match$$[1], host:$href$jscomp$1_match$$[2], hostname:$href$jscomp$1_match$$[3], port:$href$jscomp$1_match$$[4], pathname:$href$jscomp$1_match$$[5], search:$href$jscomp$1_match$$[6], hash:$href$jscomp$1_match$$[7]};
 }
+function parseQueryString($parts$jscomp$9_query$$) {
+  $parts$jscomp$9_query$$ = $parts$jscomp$9_query$$.split("&");
+  for (var $params$$ = {}, $i$$ = 0, $ii$$ = $parts$jscomp$9_query$$.length; $i$$ < $ii$$; ++$i$$) {
+    var $param$jscomp$4_value$$ = $parts$jscomp$9_query$$[$i$$].split("="), $key$$ = $param$jscomp$4_value$$[0].toLowerCase();
+    $param$jscomp$4_value$$ = 1 < $param$jscomp$4_value$$.length ? $param$jscomp$4_value$$[1] : null;
+    $params$$[decodeURIComponent($key$$)] = decodeURIComponent($param$jscomp$4_value$$);
+  }
+  return $params$$;
+}
 function getFirstBoolean($arr$$) {
   for (var $i$$ = 0; $i$$ < $arr$$.length; $i$$++) {
     if (goog.isBoolean($arr$$[$i$$])) {
@@ -8518,11 +8541,17 @@ function getFirstBoolean($arr$$) {
 function getBool($value$$) {
   return "1" == $value$$ || "true" == $value$$;
 }
-function buildViewerUrl($viewerConf$$, $highlightsUrl_params$$) {
+function buildViewerUrl($viewerConf$$, $params$$) {
   var $viewUrl$$ = $viewerConf$$.url + "?";
-  $highlightsUrl_params$$.file && ($viewUrl$$ += "file=" + encodeURIComponent($highlightsUrl_params$$.file));
-  $highlightsUrl_params$$.downloadFile && ($viewUrl$$ += "&downloadFile=" + encodeURIComponent($highlightsUrl_params$$.downloadFile));
-  $highlightsUrl_params$$.highlightsFile && ($highlightsUrl_params$$ = $highlightsUrl_params$$.highlightsFile, -1 === $highlightsUrl_params$$.indexOf("includeHits=") && ($highlightsUrl_params$$ += "&includeHits=true"), $viewUrl$$ += "&highlightsFile=" + encodeURIComponent($highlightsUrl_params$$));
+  $params$$.file && ($viewUrl$$ += "file=" + encodeURIComponent($params$$.file));
+  $params$$.downloadFile && ($viewUrl$$ += "&downloadFile=" + encodeURIComponent($params$$.downloadFile));
+  if ($params$$.highlightsFile) {
+    var $highlightsUrl$$ = $params$$.highlightsFile;
+    -1 === $highlightsUrl$$.indexOf("includeHits=") && ($highlightsUrl$$ += "&includeHits=true");
+    $viewUrl$$ += "&highlightsFile=" + encodeURIComponent($highlightsUrl$$);
+  }
+  "powerSearch" in $viewerConf$$ && !getBool($viewerConf$$.powerSearch) ? $viewUrl$$ += "&powerSearch=0" : ($params$$.language && ($viewUrl$$ += "&lang=" + encodeURIComponent($params$$.language)), $params$$.query && ($viewUrl$$ += "&q=" + encodeURIComponent($params$$.query)), $params$$.highlighterUrl && ($viewUrl$$ += "&hlSrv=" + encodeURIComponent($params$$.highlighterUrl)), $params$$.hlExtra && ($viewUrl$$ += "&hlExtra=" + encodeURIComponent($params$$.hlExtra)));
+  "hitNavLoc" in $viewerConf$$ && 1 !== $viewerConf$$.hitNavLoc && ($viewUrl$$ += "&hitNavLoc=" + $viewerConf$$.hitNavLoc);
   "string" === typeof $viewerConf$$.proxyXhr ? $viewUrl$$ += "&xhrProxy=" + $viewerConf$$.proxyXhr : !0 === $viewerConf$$.proxyXhr && ($viewUrl$$ += "&xhrProxy=parent");
   "downBtnShow" in $viewerConf$$ && !getBool($viewerConf$$.downBtnShow) && ($viewUrl$$ += "&downBtnShow=0");
   "downBtnText" in $viewerConf$$ && getBool($viewerConf$$.downBtnText) && ($viewUrl$$ += "&downBtnText=1");
@@ -8556,6 +8585,8 @@ pdfHighlighter.util.resolvePath = resolvePath;
 goog.exportSymbol("pdfHighlighter.util.resolvePath", pdfHighlighter.util.resolvePath);
 pdfHighlighter.util.findData = findData;
 goog.exportSymbol("pdfHighlighter.util.findData", pdfHighlighter.util.findData);
+pdfHighlighter.util.parseQueryString = parseQueryString;
+goog.exportSymbol("pdfHighlighter.util.parseQueryString", pdfHighlighter.util.parseQueryString);
 pdfHighlighter.util.getFirstBoolean = getFirstBoolean;
 goog.exportSymbol("pdfHighlighter.util.getFirstBoolean", pdfHighlighter.util.getFirstBoolean);
 pdfHighlighter.util.buildViewerUrl = buildViewerUrl;
@@ -8624,23 +8655,28 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
     function $collectParameters$$($el$jscomp$4_newData$$, $config$$) {
       var $data$$ = {};
       "string" === typeof $config$$.apiKey && ($data$$.apiKey = $config$$.apiKey);
-      var $dirUrl$jscomp$1_url$$ = window.location.href;
-      $dirUrl$jscomp$1_url$$ = $dirUrl$jscomp$1_url$$.substring(0, $dirUrl$jscomp$1_url$$.lastIndexOf("/") + 1);
-      var $href$$ = $el$jscomp$4_newData$$.getAttribute("href");
-      var $hrefHasXmlRef_pdf$$ = !1;
-      $href$$ || ($href$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "href"));
-      $href$$ && ($data$$.uri = pdfHighlighter.util.resolvePath($href$$, $dirUrl$jscomp$1_url$$, $resolveDocumentBase$$), $hrefHasXmlRef_pdf$$ = -1 !== $href$$.indexOf("xml="));
-      var $altUrl_viewUrl$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "altUrl");
-      $altUrl_viewUrl$$ || !$href$$ || $config$$.viewer || ($altUrl_viewUrl$$ = pdfHighlighter.util.resolvePath($href$$, $dirUrl$jscomp$1_url$$, $resolveDocumentBase$$));
-      var $ind_query$$;
-      "function" === typeof $config$$.querySelector ? $ind_query$$ = $config$$.querySelector : "string" === typeof $config$$.querySelector && 0 < $config$$.querySelector.length && ($ind_query$$ = function $$ind_query$$$() {
+      var $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$ = window.location.href;
+      $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$ = $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.substring(0, $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.lastIndexOf("/") + 1);
+      var $fragInd_href$$ = $el$jscomp$4_newData$$.getAttribute("href");
+      var $fileInd_fragment$$ = !1;
+      $fragInd_href$$ || ($fragInd_href$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "href"));
+      $fragInd_href$$ && ($data$$.uri = pdfHighlighter.util.resolvePath($fragInd_href$$, $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$, $resolveDocumentBase$$), $fileInd_fragment$$ = -1 !== $fragInd_href$$.indexOf("xml="));
+      var $altUrl_qmInd_viewUrl$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "altUrl");
+      $altUrl_qmInd_viewUrl$$ || !$fragInd_href$$ || $config$$.viewer || ($altUrl_qmInd_viewUrl$$ = pdfHighlighter.util.resolvePath($fragInd_href$$, $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$, $resolveDocumentBase$$));
+      var $extInd_ind_query$$;
+      "function" === typeof $config$$.querySelector ? $extInd_ind_query$$ = $config$$.querySelector : "string" === typeof $config$$.querySelector && 0 < $config$$.querySelector.length && ($extInd_ind_query$$ = function $$extInd_ind_query$$$() {
         return getQueryForSelector($config$$.querySelector, $config$$.maxQueryLen);
       });
-      $ind_query$$ = $ind_query$$ ? $ind_query$$() : void 0;
-      ($ind_query$$ = $config$$.query || $ind_query$$ || pdfHighlighter.util.findData($el$jscomp$4_newData$$, "query")) && !$hrefHasXmlRef_pdf$$ ? ("function" === typeof $config$$.filterQuery && ($ind_query$$ = $config$$.filterQuery($ind_query$$)), $data$$.query = $ind_query$$) : $href$$ && ($ind_query$$ = $href$$.indexOf("#xml="), -1 === $ind_query$$ && ($ind_query$$ = $href$$.indexOf("?xml=")), -1 === $ind_query$$ ? ($href$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "xml")) && ($href$$.match(/\/<xml\/i/) ? 
-      $data$$.xml = $href$$ : $data$$.xml = pdfHighlighter.util.resolvePath($href$$, $dirUrl$jscomp$1_url$$, $resolveXmlBase$$)) : ($hrefHasXmlRef_pdf$$ = $href$$.substring(0, $ind_query$$), $href$$ = $href$$.substring($ind_query$$ + 5), $data$$.uri = pdfHighlighter.util.resolvePath($hrefHasXmlRef_pdf$$, $dirUrl$jscomp$1_url$$, $resolveDocumentBase$$), $data$$.xml = pdfHighlighter.util.resolvePath($href$$, $dirUrl$jscomp$1_url$$, $resolveXmlBase$$)));
-      $data$$.uri && ($altUrl_viewUrl$$ && $data$$.uri !== $altUrl_viewUrl$$ && ($data$$.altUrl = $altUrl_viewUrl$$.replace(/ /g, "%20")), $data$$.uri = $data$$.uri.replace(/ /g, "%20"));
-      ($altUrl_viewUrl$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "viewUrl")) && ($data$$.viewUrl = pdfHighlighter.util.resolvePath($altUrl_viewUrl$$, $dirUrl$jscomp$1_url$$, $resolveViewUrl$$));
+      $extInd_ind_query$$ = $extInd_ind_query$$ ? $extInd_ind_query$$() : void 0;
+      ($extInd_ind_query$$ = $config$$.query || $extInd_ind_query$$ || pdfHighlighter.util.findData($el$jscomp$4_newData$$, "query")) && !$fileInd_fragment$$ ? ("function" === typeof $config$$.filterQuery && ($extInd_ind_query$$ = $config$$.filterQuery($extInd_ind_query$$)), $data$$.query = $extInd_ind_query$$) : $fragInd_href$$ && ($extInd_ind_query$$ = $fragInd_href$$.indexOf("#xml="), -1 === $extInd_ind_query$$ && ($extInd_ind_query$$ = $fragInd_href$$.indexOf("?xml=")), -1 === $extInd_ind_query$$ ? 
+      ($fragInd_href$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "xml")) && ($fragInd_href$$.match(/\/<xml\/i/) ? $data$$.xml = $fragInd_href$$ : $data$$.xml = pdfHighlighter.util.resolvePath($fragInd_href$$, $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$, $resolveXmlBase$$)) : ($fileInd_fragment$$ = $fragInd_href$$.substring(0, $extInd_ind_query$$), $fragInd_href$$ = $fragInd_href$$.substring($extInd_ind_query$$ + 5), $data$$.uri = pdfHighlighter.util.resolvePath($fileInd_fragment$$, $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$, 
+      $resolveDocumentBase$$), $data$$.xml = pdfHighlighter.util.resolvePath($fragInd_href$$, $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$, $resolveXmlBase$$)));
+      $data$$.uri && ($altUrl_qmInd_viewUrl$$ && $data$$.uri !== $altUrl_qmInd_viewUrl$$ && ($data$$.altUrl = $altUrl_qmInd_viewUrl$$.replace(/ /g, "%20")), $data$$.uri = $data$$.uri.replace(/ /g, "%20"));
+      ($altUrl_qmInd_viewUrl$$ = goog.dom.dataset.get($el$jscomp$4_newData$$, "viewUrl")) && ($data$$.viewUrl = pdfHighlighter.util.resolvePath($altUrl_qmInd_viewUrl$$, $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$, $resolveViewUrl$$));
+      $config$$.overridePdfJS && ($dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$ = $data$$.uri) && ($altUrl_qmInd_viewUrl$$ = $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.indexOf("?"), $fileInd_fragment$$ = $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.indexOf("file="), $extInd_ind_query$$ = $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.toLowerCase().indexOf(".pdf"), $fragInd_href$$ = $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.indexOf("#"), -1 !== $altUrl_qmInd_viewUrl$$ && -1 !== $extInd_ind_query$$ && 
+      $altUrl_qmInd_viewUrl$$ < $fileInd_fragment$$ && $fileInd_fragment$$ < $extInd_ind_query$$ && (-1 !== $fragInd_href$$ && (($fileInd_fragment$$ = $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.substring($fragInd_href$$ + 1)) && ($data$$.viewerUrlFragment = $fileInd_fragment$$), $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$ = $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.substring(0, $fragInd_href$$)), $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$ = pdfHighlighter.util.parseQueryString($dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.substring($altUrl_qmInd_viewUrl$$ + 
+      1)), goog.isDefAndNotNull($dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.file) ? $data$$.uri = $dirUrl$jscomp$1_fileUri_params$jscomp$7_url$$.file : $data$$.uri = void 0));
+      goog.isDefAndNotNull($data$$.uri) && $data$$.uri.startsWith("//") && ($data$$.uri = location.protocol + $data$$.uri);
       addParameter($data$$, $el$jscomp$4_newData$$, "removePagesWithoutMatches", $config$$.removePagesWithoutMatches);
       addParameter($data$$, $el$jscomp$4_newData$$, "addNavigation", $config$$.addNavigation);
       addParameter($data$$, $el$jscomp$4_newData$$, "openFirstHlPage", $config$$.openFirstHlPage);
