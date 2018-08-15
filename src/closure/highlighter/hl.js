@@ -372,6 +372,7 @@ var initPdfHighlighter = function (config, hlBase) {
       addParameter(data, el, 'pdf.highlightGsAlpha', null);
       addParameter(data, el, 'documentServingPath', config['documentServingPath']);
       addParameter(data, el, 'navigation', config['navigation']);
+      addParameter(data, el, 'dtsearch_hitsByWord', null);
 
       // giving a chance to client to amend highlighting parameters
       if (typeof config['updateHighlightingParams'] === 'function') {
