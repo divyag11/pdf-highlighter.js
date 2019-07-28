@@ -8687,6 +8687,7 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
       addParameter($data$$, $el$jscomp$4_newData$$, "pdf.highlightGsAlpha", null);
       addParameter($data$$, $el$jscomp$4_newData$$, "documentServingPath", $config$$.documentServingPath);
       addParameter($data$$, $el$jscomp$4_newData$$, "navigation", $config$$.navigation);
+      addParameter($data$$, $el$jscomp$4_newData$$, "dtsearch_hitsByWord", null);
       "function" === typeof $config$$.updateHighlightingParams && ($el$jscomp$4_newData$$ = $config$$.updateHighlightingParams($data$$)) && ($data$$ = $el$jscomp$4_newData$$);
       return $data$$;
     }
@@ -8756,7 +8757,10 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
 function showDocument($docUrl$$, $target$$) {
   "string" === typeof $target$$ ? window.open($docUrl$$, $target$$) : window.location = $docUrl$$;
 }
-function checkServerStatus($highlighterUrl$$, $dataEncoded$$, $onSuccess$$, $onError$$) {
+function checkServerStatus($highlighterUrl$$, $statusReqData$$, $onSuccess$$, $onError$$) {
+  sendGetRequest($highlighterUrl$$ + "status", $statusReqData$$, $onSuccess$$, $onError$$);
+}
+function sendGetRequest($url$$, $dataEncoded$$, $onSuccess$$, $onError$$) {
   $dataEncoded$$ = $dataEncoded$$ ? goog.Uri.QueryData.createFromMap($dataEncoded$$).toString() : void 0;
   var $request$$ = new goog.net.XhrIo;
   $request$$.headers.set("accept", "application/json");
@@ -8764,9 +8768,14 @@ function checkServerStatus($highlighterUrl$$, $dataEncoded$$, $onSuccess$$, $onE
     var $res$$ = $request$$.getStatus();
     $request$$.isSuccess() && 400 > $res$$ ? ($res$$ = $request$$.getResponseJson(), $onSuccess$$($res$$)) : (console.log("Something went wrong in the ajax call. HTTP status: " + $res$$ + " - " + $request$$.getStatusText() + "; Error: " + $request$$.getLastErrorCode() + " - " + $request$$.getLastError()), $onError$$ && $onError$$($request$$));
   });
-  $highlighterUrl$$ += "status";
-  $dataEncoded$$ && ($highlighterUrl$$ += "?" + $dataEncoded$$);
-  $request$$.send($highlighterUrl$$, "GET", $dataEncoded$$);
+  $dataEncoded$$ && ($url$$ += "?" + $dataEncoded$$);
+  $request$$.send($url$$, "GET", $dataEncoded$$);
+}
+function buildHighlighterRequestUrl($config$$, $data$$) {
+  return getHighlightUrlBuilder($config$$)($config$$.highlighterUrl || window.HighlighterBase || "/", getHighlightingMethodForParams($data$$), $data$$);
+}
+function sendHighlightRequest($config$$, $data$$, $onSuccess$$, $onError$$) {
+  ($config$$ = buildHighlighterRequestUrl($config$$, $data$$)) ? sendGetRequest($config$$, null, $onSuccess$$, $onError$$) : $onError$$("Invalid config or highlight request data");
 }
 function getHighlightUrlBuilder($config$$) {
   return "function" === typeof $config$$.highlightUrlBuilder ? $config$$.highlightUrlBuilder : function($highlighterUrl$$, $method$$, $data$$) {
@@ -8859,6 +8868,10 @@ pdfHighlighter.initPdfHighlighter = initPdfHighlighter;
 goog.exportSymbol("pdfHighlighter.initPdfHighlighter", pdfHighlighter.initPdfHighlighter);
 pdfHighlighter.getQueryForSelector = getQueryForSelector;
 goog.exportSymbol("pdfHighlighter.getQueryForSelector", pdfHighlighter.getQueryForSelector);
+pdfHighlighter.buildHighlighterRequestUrl = buildHighlighterRequestUrl;
+goog.exportSymbol("pdfHighlighter.buildHighlighterRequestUrl", pdfHighlighter.buildHighlighterRequestUrl);
+pdfHighlighter.sendHighlightRequest = sendHighlightRequest;
+goog.exportSymbol("pdfHighlighter.sendHighlightRequest", pdfHighlighter.sendHighlightRequest);
 pdfHighlighter.isPdfViewerCompatible = isPdfViewerCompatible;
 goog.exportSymbol("pdfHighlighter.isPdfViewerCompatible", pdfHighlighter.isPdfViewerCompatible);
 }).call(window);

@@ -412,7 +412,12 @@ function showDocument(docUrl, target) {
 }
 
 function checkServerStatus(highlighterUrl, statusReqData, onSuccess, onError) {
-  var dataEncoded = statusReqData ? goog.Uri.QueryData.createFromMap(statusReqData).toString() : undefined;
+  var statusUrl = highlighterUrl + 'status';
+  sendGetRequest(statusUrl, statusReqData, onSuccess, onError);
+}
+
+function sendGetRequest(url, reqData, onSuccess, onError) {
+  var dataEncoded = reqData ? goog.Uri.QueryData.createFromMap(reqData).toString() : undefined;
   var request = new goog.net.XhrIo();
   request.headers.set('accept', 'application/json');
   goog.events.listen(request, 'complete', function () {
@@ -430,11 +435,25 @@ function checkServerStatus(highlighterUrl, statusReqData, onSuccess, onError) {
       }
     }
   });
-  var statusUrl = highlighterUrl + 'status';
   if (dataEncoded) {
-    statusUrl += '?' + dataEncoded;
+    url += '?' + dataEncoded;
   }
-  request.send(statusUrl, 'GET', dataEncoded);
+  request.send(url, 'GET', dataEncoded);
+}
+
+function buildHighlighterRequestUrl(config, data) {
+  var highlightUrlBuilder = getHighlightUrlBuilder(config);
+  var highlighterUrl = config['highlighterUrl'] || window['HighlighterBase'] || "/";
+  return highlightUrlBuilder(highlighterUrl, getHighlightingMethodForParams(data), data);
+}
+
+function sendHighlightRequest(config, data, onSuccess, onError) {
+  var hlUrl = buildHighlighterRequestUrl(config, data);
+  if (!hlUrl) {
+    onError('Invalid config or highlight request data');
+    return;
+  }
+  sendGetRequest(hlUrl, null, onSuccess, onError);
 }
 
 function getHighlightUrlBuilder(config) {
@@ -567,6 +586,12 @@ pdfHighlighter.initPdfHighlighter = initPdfHighlighter;
 
 /** @export */
 pdfHighlighter.getQueryForSelector = getQueryForSelector;
+
+/** @export */
+pdfHighlighter.buildHighlighterRequestUrl = buildHighlighterRequestUrl;
+
+/** @export */
+pdfHighlighter.sendHighlightRequest = sendHighlightRequest;
 
 /** @export */
 pdfHighlighter.isPdfViewerCompatible = isPdfViewerCompatible;
