@@ -91,7 +91,8 @@ function getBool(value) {
   return value == '1' || value == 'true'; // note: on purpose not using ===
 }
 
-function buildViewerUrl(viewerConf, params) {
+function buildViewerUrl(conf, params) {
+  var viewerConf = conf['viewer'];
   var viewUrl = viewerConf['url'] + '?';
 
   if (params['file'])
@@ -110,15 +111,20 @@ function buildViewerUrl(viewerConf, params) {
 
   var powerSearch = !('powerSearch' in viewerConf) || getBool(viewerConf['powerSearch']);
   if (powerSearch) {
+    viewUrl += '&powerSearch=1';
+    if (conf['apiKey']) {
+      viewUrl += '&hlApiKey=' + encodeURIComponent(conf['apiKey']);
+    }
     // options needed by viewer search bar
+    var hlSrv = params['highlighterUrl'] || conf['highlighterUrl'];
+    if (hlSrv) {
+      viewUrl += '&hlSrv=' + encodeURIComponent(hlSrv);
+    }
     if (params['language']) {
       viewUrl += '&lang=' + encodeURIComponent(params['language']);
     }
     if (params['query']) {
       viewUrl += '&q=' + encodeURIComponent(params['query']);
-    }
-    if (params['highlighterUrl']) {
-      viewUrl += '&hlSrv=' + encodeURIComponent(params['highlighterUrl']);
     }
     if (params['hlExtra']) {
       viewUrl += '&hlExtra=' + encodeURIComponent(params['hlExtra']);

@@ -8541,8 +8541,8 @@ function getFirstBoolean($arr$$) {
 function getBool($value$$) {
   return "1" == $value$$ || "true" == $value$$;
 }
-function buildViewerUrl($viewerConf$$, $params$$) {
-  var $viewUrl$$ = $viewerConf$$.url + "?";
+function buildViewerUrl($conf_hlSrv$$, $params$$) {
+  var $viewerConf$$ = $conf_hlSrv$$.viewer, $viewUrl$$ = $viewerConf$$.url + "?";
   $params$$.file && ($viewUrl$$ += "file=" + encodeURIComponent($params$$.file));
   $params$$.downloadFile && ($viewUrl$$ += "&downloadFile=" + encodeURIComponent($params$$.downloadFile));
   if ($params$$.highlightsFile) {
@@ -8550,7 +8550,8 @@ function buildViewerUrl($viewerConf$$, $params$$) {
     -1 === $highlightsUrl$$.indexOf("includeHits=") && ($highlightsUrl$$ += "&includeHits=true");
     $viewUrl$$ += "&highlightsFile=" + encodeURIComponent($highlightsUrl$$);
   }
-  "powerSearch" in $viewerConf$$ && !getBool($viewerConf$$.powerSearch) ? $viewUrl$$ += "&powerSearch=0" : ($params$$.language && ($viewUrl$$ += "&lang=" + encodeURIComponent($params$$.language)), $params$$.query && ($viewUrl$$ += "&q=" + encodeURIComponent($params$$.query)), $params$$.highlighterUrl && ($viewUrl$$ += "&hlSrv=" + encodeURIComponent($params$$.highlighterUrl)), $params$$.hlExtra && ($viewUrl$$ += "&hlExtra=" + encodeURIComponent($params$$.hlExtra)));
+  "powerSearch" in $viewerConf$$ && !getBool($viewerConf$$.powerSearch) ? $viewUrl$$ += "&powerSearch=0" : ($viewUrl$$ += "&powerSearch=1", $conf_hlSrv$$.apiKey && ($viewUrl$$ += "&hlApiKey=" + encodeURIComponent($conf_hlSrv$$.apiKey)), ($conf_hlSrv$$ = $params$$.highlighterUrl || $conf_hlSrv$$.highlighterUrl) && ($viewUrl$$ += "&hlSrv=" + encodeURIComponent($conf_hlSrv$$)), $params$$.language && ($viewUrl$$ += "&lang=" + encodeURIComponent($params$$.language)), $params$$.query && ($viewUrl$$ += 
+  "&q=" + encodeURIComponent($params$$.query)), $params$$.hlExtra && ($viewUrl$$ += "&hlExtra=" + encodeURIComponent($params$$.hlExtra)));
   "hitNavLoc" in $viewerConf$$ && 1 !== $viewerConf$$.hitNavLoc && ($viewUrl$$ += "&hitNavLoc=" + $viewerConf$$.hitNavLoc);
   "string" === typeof $viewerConf$$.proxyXhr ? $viewUrl$$ += "&xhrProxy=" + $viewerConf$$.proxyXhr : !0 === $viewerConf$$.proxyXhr && ($viewUrl$$ += "&xhrProxy=parent");
   "downBtnShow" in $viewerConf$$ && !getBool($viewerConf$$.downBtnShow) && ($viewUrl$$ += "&downBtnShow=0");
@@ -8634,12 +8635,12 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
         $e$jscomp$46_viewUrl$$.preventDefault();
         var $target$$ = $e$jscomp$46_viewUrl$$.target.getAttribute("target");
         if ($config$jscomp$0$$.viewer) {
-          $e$jscomp$46_viewUrl$$ = pdfHighlighter.util.buildViewerUrl($config$jscomp$0$$.viewer, {file:$data$$.uri, highlightsFile:$postUrl$$ + "?" + $dataEncoded_k$$}), showDocument($e$jscomp$46_viewUrl$$, $target$$ || $config$jscomp$0$$.target);
+          $e$jscomp$46_viewUrl$$ = pdfHighlighter.util.buildViewerUrl($config$jscomp$0$$, {file:$data$$.uri, highlightsFile:$postUrl$$ + "?" + $dataEncoded_k$$}), showDocument($e$jscomp$46_viewUrl$$, $target$$ || $config$jscomp$0$$.target);
         } else {
           var $request$$ = new goog.net.XhrIo;
           $request$$.headers.set("accept", "application/json");
           $request$$.headers.set("content-type", "application/x-www-form-urlencoded");
-          $apiToken$$ ? $request$$.headers.set("x-api-token", $apiToken$$) : $request$$.headers.set("x-api-token", "demo");
+          $apiToken$$ && $request$$.headers.set("x-api-token", $apiToken$$);
           goog.events.listen($request$$, "complete", function() {
             if ($request$$.isSuccess()) {
               var $res$$ = $request$$.getResponseJson();
@@ -8696,11 +8697,11 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
       if ("string" === typeof $config$jscomp$0$$.updateAttr) {
         var $data$jscomp$35_iframeAttrs_orig$$ = $collectParameters$$($el$$, $config$jscomp$0$$);
         var $iframeNode_url$$ = $highlightUrlBuilder$$($highlighterUrl$$, getHighlightingMethodForParams($data$jscomp$35_iframeAttrs_orig$$), $data$jscomp$35_iframeAttrs_orig$$);
-        $config$jscomp$0$$.viewer && ($iframeNode_url$$ = pdfHighlighter.util.buildViewerUrl($config$jscomp$0$$.viewer, {file:$data$jscomp$35_iframeAttrs_orig$$.uri, highlightsFile:$iframeNode_url$$}));
+        $config$jscomp$0$$.viewer && ($iframeNode_url$$ = pdfHighlighter.util.buildViewerUrl($config$jscomp$0$$, {file:$data$jscomp$35_iframeAttrs_orig$$.uri, highlightsFile:$iframeNode_url$$}));
         $iframeNode_url$$ && $el$$.setAttribute($config$jscomp$0$$.updateAttr, $iframeNode_url$$);
       } else {
         if (!0 === $config$jscomp$0$$.updateHref || $inlineViewer$$) {
-          $data$jscomp$35_iframeAttrs_orig$$ = $collectParameters$$($el$$, $config$jscomp$0$$), $iframeNode_url$$ = $highlightUrlBuilder$$($highlighterUrl$$, getHighlightingMethodForParams($data$jscomp$35_iframeAttrs_orig$$), $data$jscomp$35_iframeAttrs_orig$$), $config$jscomp$0$$.viewer && ($iframeNode_url$$ = pdfHighlighter.util.buildViewerUrl($config$jscomp$0$$.viewer, {file:$data$jscomp$35_iframeAttrs_orig$$.uri, highlightsFile:$iframeNode_url$$})), $iframeNode_url$$ && ($inlineViewer$$ ? ($data$jscomp$35_iframeAttrs_orig$$ = 
+          $data$jscomp$35_iframeAttrs_orig$$ = $collectParameters$$($el$$, $config$jscomp$0$$), $iframeNode_url$$ = $highlightUrlBuilder$$($highlighterUrl$$, getHighlightingMethodForParams($data$jscomp$35_iframeAttrs_orig$$), $data$jscomp$35_iframeAttrs_orig$$), $config$jscomp$0$$.viewer && ($iframeNode_url$$ = pdfHighlighter.util.buildViewerUrl($config$jscomp$0$$, {file:$data$jscomp$35_iframeAttrs_orig$$.uri, highlightsFile:$iframeNode_url$$})), $iframeNode_url$$ && ($inlineViewer$$ ? ($data$jscomp$35_iframeAttrs_orig$$ = 
           goog.object.clone($config$jscomp$0$$.inlinePdfViewerAttr || {}), goog.object.setIfUndefined($data$jscomp$35_iframeAttrs_orig$$, "class", "inlinePdfViewerIframe"), goog.object.setIfUndefined($data$jscomp$35_iframeAttrs_orig$$, "frameborder", 0), goog.object.setIfUndefined($data$jscomp$35_iframeAttrs_orig$$, "allowfullscreen", !0), $data$jscomp$35_iframeAttrs_orig$$.src = $iframeNode_url$$, $iframeNode_url$$ = goog.dom.createDom("iframe", $data$jscomp$35_iframeAttrs_orig$$), goog.dom.replaceNode($iframeNode_url$$, 
           $el$$)) : (($data$jscomp$35_iframeAttrs_orig$$ = $el$$.getAttribute("href")) && goog.dom.dataset.set($el$$, "hlOrigHref", $data$jscomp$35_iframeAttrs_orig$$), $el$$.setAttribute("href", $iframeNode_url$$)));
         } else {

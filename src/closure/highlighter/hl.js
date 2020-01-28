@@ -137,7 +137,7 @@ var initPdfHighlighter = function (config, hlBase) {
       var data = collectParameters(el, config);
       var url = highlightUrlBuilder(highlighterUrl, getHighlightingMethodForParams(data), data);
       if (config['viewer']) {
-        url = pdfHighlighter.util.buildViewerUrl(config['viewer'], {
+        url = pdfHighlighter.util.buildViewerUrl(config, {
           'file': data['uri'],
           'highlightsFile': url
         });
@@ -149,7 +149,7 @@ var initPdfHighlighter = function (config, hlBase) {
       var data = collectParameters(el, config);
       var url = highlightUrlBuilder(highlighterUrl, getHighlightingMethodForParams(data), data);
       if (config['viewer']) {
-        url = pdfHighlighter.util.buildViewerUrl(config['viewer'], {
+        url = pdfHighlighter.util.buildViewerUrl(config, {
           'file': data['uri'],
           'highlightsFile': url
         });
@@ -209,7 +209,7 @@ var initPdfHighlighter = function (config, hlBase) {
       var target = e.target.getAttribute('target');
 
       if (config['viewer']) {
-        var viewUrl = pdfHighlighter.util.buildViewerUrl(config['viewer'], {
+        var viewUrl = pdfHighlighter.util.buildViewerUrl(config, {
           'file': data['uri'],
           'highlightsFile': postUrl + '?' + dataEncoded
         });
@@ -223,7 +223,6 @@ var initPdfHighlighter = function (config, hlBase) {
       if (apiToken) {
         request.headers.set('x-api-token', apiToken);
       }
-      else request.headers.set('x-api-token', 'demo'); // fixme delete
       goog.events.listen(request, 'complete', function () {
         if (request.isSuccess()) {
           var res = request.getResponseJson();
