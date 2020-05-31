@@ -8715,8 +8715,7 @@ var initPdfHighlighter = function $initPdfHighlighter$($config$jscomp$0$$, $chec
   }
   var $cmdObject$$ = new HlInitedInfo;
   $config$jscomp$0$$ = $config$jscomp$0$$ || {};
-  var $highlighterUrl$$ = $checkStatus_hlBase$$ || $config$jscomp$0$$.highlighterUrl || window.HighlighterBase || "/";
-  -1 === $highlighterUrl$$.indexOf("/", $highlighterUrl$$.length - 1) && ($highlighterUrl$$ += "/");
+  var $highlighterUrl$$ = getHighlighterUrl($config$jscomp$0$$, $checkStatus_hlBase$$);
   $checkStatus_hlBase$$ = !0 === $config$jscomp$0$$.checkStatus;
   var $resolveDocumentBase$$ = pdfHighlighter.util.getFirstBoolean([$config$jscomp$0$$.sendAbsoluteUrlsToHighlighter, $config$jscomp$0$$.resolveDocumentBase, !0]), $resolveXmlBase$$ = pdfHighlighter.util.getFirstBoolean([$config$jscomp$0$$.sendAbsoluteUrlsToHighlighter, $config$jscomp$0$$.resolveXmlBase, !0]), $resolveViewUrl$$ = pdfHighlighter.util.getFirstBoolean([$config$jscomp$0$$.sendAbsoluteUrlsToHighlighter, $config$jscomp$0$$.resolveViewUrl, !0]), $target$jscomp$0$$ = $config$jscomp$0$$.documentLinkSelector, 
   $apiToken$$, $attachDisabled$$ = !1 === $config$jscomp$0$$.attach;
@@ -8772,8 +8771,15 @@ function sendGetRequest($url$$, $dataEncoded$$, $onSuccess$$, $onError$$) {
   $dataEncoded$$ && ($url$$ += "?" + $dataEncoded$$);
   $request$$.send($url$$, "GET", $dataEncoded$$);
 }
-function buildHighlighterRequestUrl($config$$, $data$$) {
-  return getHighlightUrlBuilder($config$$)($config$$.highlighterUrl || window.HighlighterBase || "/", getHighlightingMethodForParams($data$$), $data$$);
+function getHighlighterUrl($config$jscomp$4_highlighterUrl$$, $hlBase$$) {
+  $config$jscomp$4_highlighterUrl$$ = $hlBase$$ || $config$jscomp$4_highlighterUrl$$.highlighterUrl || window.HighlighterBase || "/";
+  -1 === $config$jscomp$4_highlighterUrl$$.indexOf("/", $config$jscomp$4_highlighterUrl$$.length - 1) && ($config$jscomp$4_highlighterUrl$$ += "/");
+  return $config$jscomp$4_highlighterUrl$$;
+}
+function buildHighlighterRequestUrl($config$jscomp$5_highlighterUrl$$, $data$$) {
+  var $highlightUrlBuilder$$ = getHighlightUrlBuilder($config$jscomp$5_highlighterUrl$$);
+  $config$jscomp$5_highlighterUrl$$ = getHighlighterUrl($config$jscomp$5_highlighterUrl$$);
+  return $highlightUrlBuilder$$($config$jscomp$5_highlighterUrl$$, getHighlightingMethodForParams($data$$), $data$$);
 }
 function sendHighlightRequest($config$$, $data$$, $onSuccess$$, $onError$$) {
   ($config$$ = buildHighlighterRequestUrl($config$$, $data$$)) ? sendGetRequest($config$$, null, $onSuccess$$, $onError$$) : $onError$$("Invalid config or highlight request data");

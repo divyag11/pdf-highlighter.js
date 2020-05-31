@@ -38,9 +38,7 @@ var initPdfHighlighter = function (config, hlBase) {
 
   config = config || {};
 
-  var highlighterUrl = hlBase || config['highlighterUrl'] || window['HighlighterBase'] || "/";
-  if (highlighterUrl.indexOf('/', highlighterUrl.length - 1) === -1)
-    highlighterUrl += '/';
+  var highlighterUrl = getHighlighterUrl(config, hlBase);
 
   var checkStatus = config['checkStatus'] === true;
   var resolveDocumentBase = pdfHighlighter.util.getFirstBoolean([config['sendAbsoluteUrlsToHighlighter'], config['resolveDocumentBase'], true]);
@@ -440,9 +438,16 @@ function sendGetRequest(url, reqData, onSuccess, onError) {
   request.send(url, 'GET', dataEncoded);
 }
 
+function getHighlighterUrl(config, hlBase) {
+  var highlighterUrl = hlBase || config['highlighterUrl'] || window['HighlighterBase'] || "/";
+  if (highlighterUrl.indexOf('/', highlighterUrl.length - 1) === -1)
+    highlighterUrl += '/';
+  return highlighterUrl;
+}
+
 function buildHighlighterRequestUrl(config, data) {
   var highlightUrlBuilder = getHighlightUrlBuilder(config);
-  var highlighterUrl = config['highlighterUrl'] || window['HighlighterBase'] || "/";
+  var highlighterUrl = getHighlighterUrl(config);
   return highlightUrlBuilder(highlighterUrl, getHighlightingMethodForParams(data), data);
 }
 
